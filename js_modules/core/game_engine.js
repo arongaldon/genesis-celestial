@@ -805,18 +805,19 @@ export function loop() {
 
     State.backgroundLayers.galaxies.forEach(g => {
         // Slow parallax relative to standard speed
-        g.x -= State.velocity.x * 0.05;
-        g.y -= State.velocity.y * 0.05;
+        g.x -= State.velocity.x * 0.002;
+        g.y -= State.velocity.y * 0.002;
         g.angle += 0.0005;
 
-        // Wrap them gracefully within a very large boundary so they don't clump
-        const ext = Math.max(State.width, State.height) * 3;
-        if (g.x < -ext) g.x = State.width + ext;
-        else if (g.x > State.width + ext) g.x = -ext;
-        if (g.y < -ext) g.y = State.height + ext;
-        else if (g.y > State.height + ext) g.y = -ext;
-
         g.angle += 0.0005; // Slower rotation
+
+        // FAST PRE-CHECK: Skip rendering entirely if off-screen (with buffer)
+        // Since coordinate system is reversed via translate above, we check against standard canvas bounds plus a generic buffer
+        const buffer = g.size * 1.5;
+        if (g.x < -buffer || g.x > State.width + buffer ||
+            g.y < -buffer || g.y > State.height + buffer) {
+            return;
+        }
 
         DOM.canvasContext.save();
         DOM.canvasContext.translate(g.x, g.y);
@@ -851,7 +852,7 @@ export function loop() {
     });
     DOM.canvasContext.restore(); // Restore global scale
     // Draw starfield parallax layers
-    moveLayer(State.backgroundLayers.starsFar, 0.1); moveLayer(State.backgroundLayers.starsMid, 0.4); moveLayer(State.backgroundLayers.starsNear, 0.8);
+    moveLayer(State.backgroundLayers.starsFar, 0.02); moveLayer(State.backgroundLayers.starsMid, 0.08); moveLayer(State.backgroundLayers.starsNear, 0.16);
     const drawStars = (list, c) => { DOM.canvasContext.fillStyle = c; list.forEach(s => DOM.canvasContext.fillRect(s.x, s.y, s.size, s.size)); };
     drawStars(State.backgroundLayers.starsFar, '#555'); drawStars(State.backgroundLayers.starsMid, '#888'); drawStars(State.backgroundLayers.starsNear, '#fff');
 

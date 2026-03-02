@@ -23,15 +23,15 @@ export const MAX_Z_DEPTH = 2.0;
 export const MIN_DURATION_TAP_TO_MOVE = 200;
 
 export const GALAXY_CONFIG = {
-   ARMS_LIMIT: 20,
+   ARMS_LIMIT: 18,
    BRIGHTNESS: 0.2,
-   LIMIT: 5,
+   LIMIT: 3,
    MIN_DIST: 3000
 };
 
 export const PLANET_CONFIG = {
-   LIMIT: 10,
-   MAX_SIZE: 3000
+   LIMIT: 3,
+   MAX_SIZE: 2000
 };
 
 export const PLAYER_CONFIG = {

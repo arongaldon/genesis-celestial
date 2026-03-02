@@ -17,7 +17,10 @@ export function updatePhysics() {
     // PHASE 1: PHYSICS UPDATE & GRID POPULATION
     for (let i = 0; i < State.roids.length; i++) {
         let r1 = State.roids[i];
-        if (isNaN(r1.x) || isNaN(r1.y)) { State.roids.splice(i, 1); updateAsteroidCounter(); i--; continue; }
+        if (isNaN(r1.x) || isNaN(r1.y) || !isFinite(r1.x) || !isFinite(r1.y)) {
+            r1._destroyed = true;
+            continue;
+        }
 
         // --- 1. Radius Growth (Only for Planets) ---
         if (r1.isPlanet && r1.targetR && r1.r < r1.targetR) {
@@ -87,13 +90,18 @@ export function updatePhysics() {
         }
 
         // --- 3. Attraction to Planets (Asteroids only) ---
-        if (!r1.isPlanet) {
+        // OPTIMIZATION: Skip gravity calculations for asteroids that are extremely far from the camera 
+        // IF they aren't massive.
+        const isFarAway = Math.abs(r1.x - State.worldOffsetX) > State.width * 2 || Math.abs(r1.y - State.worldOffsetY) > State.height * 2;
+        if (!r1.isPlanet && (!isFarAway || r1.r > ASTEROID_CONFIG.MIN_SIZE * 2)) {
             let nearestPlanet = null;
             let minDistSq = Infinity;
 
-            // Use local activePlanets list instead of full loop
-            for (const other of activePlanets) {
-                const dSq = (other.x - r1.x) ** 2 + (other.y - r1.y) ** 2;
+            for (let j = 0; j < activePlanets.length; j++) {
+                const other = activePlanets[j];
+                const dx = other.x - r1.x;
+                const dy = other.y - r1.y;
+                const dSq = dx * dx + dy * dy;
                 if (dSq < minDistSq) { minDistSq = dSq; nearestPlanet = other; }
             }
 
@@ -202,8 +210,9 @@ export function updatePhysics() {
     // PHASE 3: CLEANUP
     let writeIdx = 0;
     for (let i = 0; i < State.roids.length; i++) {
-        if (!State.roids[i]._destroyed) {
-            State.roids[writeIdx++] = State.roids[i];
+        const obj = State.roids[i];
+        if (!obj._destroyed && !isNaN(obj.x) && !isNaN(obj.y) && isFinite(obj.x) && isFinite(obj.y)) {
+            State.roids[writeIdx++] = obj;
         }
     }
     State.roids.length = writeIdx;

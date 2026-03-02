@@ -44,7 +44,6 @@ window.onload = function () {
 
     // Initialize background world immediately
     initBackground();
-    createLevel();
 
     // Start loop immediately so we see the world behind the intro
     if (!State.loopStarted) {

@@ -1,5 +1,5 @@
 import { State } from '../core/state.js';
-import { GALAXY_CONFIG } from '../core/config.js';
+import { GALAXY_CONFIG, WORLD_BOUNDS } from '../core/config.js';
 import { mulberry32 } from '../utils/utils.js';
 
 export function initBackground() {
@@ -7,7 +7,7 @@ export function initBackground() {
     State.backgroundLayers = { nebulas: [], galaxies: [], starsNear: [], starsMid: [], starsFar: [] };
     State.ambientFogs = []; // NEW: Reset ambient fog
     for (let i = 0; i < 6; i++) State.backgroundLayers.nebulas.push({ x: Math.random() * State.width, y: Math.random() * State.height, r: State.width * 0.6, hue: Math.random() * 60 + 200, alpha: 0.1 });
-    const galaxyCount = Math.floor(Math.random() * (GALAXY_CONFIG.LIMIT + 1));
+    const galaxyCount = GALAXY_CONFIG.LIMIT;
     for (let i = 0; i < galaxyCount; i++) {
         let newGalaxy;
         let attempts = 0;
@@ -21,13 +21,19 @@ export function initBackground() {
             });
             attempts++;
         } while (tooClose && attempts < 20);
+
+        // Scatter globally across parallax world (0.05 scale)
+        const parallaxSpread = WORLD_BOUNDS * 2 * 0.05;
+        newGalaxy.x = State.width / 2 + (Math.random() - 0.5) * parallaxSpread;
+        newGalaxy.y = State.height / 2 + (Math.random() - 0.5) * parallaxSpread;
+
         State.backgroundLayers.galaxies.push(newGalaxy);
     }
     for (let i = 0; i < 3; i++) State.ambientFogs.push(createAmbientFog()); // NEW: Initial ambient fogs
     const createStar = () => ({ x: Math.random() * State.width, y: Math.random() * State.height, size: Math.random() * 1.5 + 0.5, alpha: Math.random() * 0.5 + 0.3 });
-    for (let i = 0; i < 50; i++) State.backgroundLayers.starsFar.push(createStar());
-    for (let i = 0; i < 40; i++) State.backgroundLayers.starsMid.push(createStar());
-    for (let i = 0; i < 30; i++) State.backgroundLayers.starsNear.push(createStar());
+    for (let i = 0; i < 20; i++) State.backgroundLayers.starsFar.push(createStar());
+    for (let i = 0; i < 15; i++) State.backgroundLayers.starsMid.push(createStar());
+    for (let i = 0; i < 10; i++) State.backgroundLayers.starsNear.push(createStar());
 }
 
 export function createGalaxy() {

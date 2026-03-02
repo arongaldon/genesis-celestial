@@ -126,10 +126,19 @@ export function drawRadar() {
             // Safety check for worldOffset being invalid
             if (isNaN(dx) || isNaN(dy)) return;
 
+            // FAST PRE-CHECK: Skip math if way out of bounds (save CPU)
+            const maxRadarDist = State.RADAR_RANGE + size;
+            if (Math.abs(dx) > maxRadarDist || Math.abs(dy) > maxRadarDist) {
+                // If it's not a planet or asteroid (which we scale to edge), don't draw it at all
+                if (type !== 'planet' && type !== 'asteroid' && type !== 'background_planet') return;
+            }
+
             let dist = Math.sqrt(dx * dx + dy * dy);
 
             // Ensure large objects like planets are drawn if their edge touches the radar range
-            if (dist - size > State.RADAR_RANGE || !isFinite(dist)) return;
+            if (dist - size > State.RADAR_RANGE || !isFinite(dist)) {
+                if (type !== 'planet' && type !== 'asteroid' && type !== 'background_planet') return;
+            }
 
             let angle = Math.atan2(dy, dx);
             let radarDist = dist * scale;
@@ -144,7 +153,7 @@ export function drawRadar() {
             if (isNaN(radarSize) || !isFinite(radarSize)) radarSize = 2;
 
             // Snap small objects to the radar border, but let massive planets overflow naturally
-            if (type !== 'planet' && type !== 'asteroid' && radarDist > radarRadius - radarSize) {
+            if (type !== 'planet' && type !== 'asteroid' && type !== 'background_planet' && radarDist > radarRadius - radarSize) {
                 radarDist = Math.max(0, radarRadius - radarSize - 1);
             }
 
@@ -184,7 +193,7 @@ export function drawRadar() {
                     drawBlip(r.x, r.y, 'background_planet', color, 4, r.z); // Small dot for far away planets
                 }
             } else if (r.z <= 0.1) {
-                drawBlip(r.x, r.y, 'asteroid', 'rgba(200, 200, 200, 0.9)', r.r, r.z);
+                drawBlip(r.x, r.y, 'asteroid', 'rgba(200, 200, 200, 0.9)', Math.max(10, r.r), r.z); // Make tiny asteroids slightly larger for radar
             }
         }
 
@@ -664,18 +673,17 @@ export function drawBullet(ctx, bullet, vpX, vpY) {
     const xv = bullet.xv; const yv = bullet.yv;
     const ang = Math.atan2(yv, xv);
 
-    // 1. MOTION TRAIL (Optimized)
+    // OPTIMIZED MOTION TRAIL: only draw if moving very fast AND higher tier to reduce overdraw
     const speedSq = xv * xv + yv * yv;
-    if (speedSq > 25) {
+    if (speedSq > 100 && tier >= 4) {
         const speed = Math.sqrt(speedSq);
-        const trailLen = Math.min(speed * (tier >= 8 ? 4 : 2), 200);
+        const trailLen = Math.min(speed * 2, 100);
         ctx.strokeStyle = _getBulletColor(hue, 100, 60, 0.3);
-        ctx.lineWidth = size * (tier >= 4 ? 1.5 : 0.8);
+        ctx.lineWidth = size;
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(vpX, vpY);
-        const cos = Math.cos(ang); const sin = Math.sin(ang);
-        ctx.lineTo(vpX - cos * trailLen, vpY - sin * trailLen);
+        ctx.lineTo(vpX - Math.cos(ang) * trailLen, vpY - Math.sin(ang) * trailLen);
         ctx.stroke();
     }
 
@@ -684,30 +692,28 @@ export function drawBullet(ctx, bullet, vpX, vpY) {
 
     if (tier >= 8) {
         // --- ULTIMATE: PERFORMANCE BOLT (fillRect is faster) ---
-        const pulse = 0.9 + Math.sin(Date.now() * 0.025) * 0.1;
+        // Fast paths, reduced pulse math
         const bLen = size * 10;
 
         ctx.fillStyle = _getBulletColor(hue, 100, 50, 0.15);
-        ctx.fillRect(-bLen, -size * 3 * pulse, bLen * 1.5, size * 6 * pulse);
+        ctx.fillRect(-bLen, -size * 3, bLen * 1.5, size * 6);
 
         ctx.fillStyle = _getBulletColor(hue, 100, 75, 0.8);
-        ctx.fillRect(-bLen * 0.5, -size * 0.6 * pulse, bLen * 1.2, size * 1.2 * pulse);
+        ctx.fillRect(-bLen * 0.5, -size * 0.6, bLen * 1.2, size * 1.2);
 
         ctx.fillStyle = '#fff';
-        ctx.fillRect(0, -size * 0.3 * pulse, bLen * 0.6, size * 0.6 * pulse);
+        ctx.fillRect(0, -size * 0.3, bLen * 0.6, size * 0.6);
 
     } else if (tier >= 4) {
         // --- ADVANCED: PLASMA SPHERE ---
-        const pulse = 0.9 + Math.sin(Date.now() * 0.0125) * 0.1;
-
         ctx.fillStyle = _getBulletColor(hue, 100, 65, 0.3);
-        ctx.beginPath(); ctx.arc(0, 0, size * 4 * pulse, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 0, size * 4, 0, Math.PI * 2); ctx.fill();
 
         ctx.fillStyle = _getBulletColor(hue, 100, 80, 1);
-        ctx.beginPath(); ctx.arc(0, 0, size * 1.5 * pulse, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 0, size * 1.5, 0, Math.PI * 2); ctx.fill();
 
         ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(size * 0.5, 0, size * 0.8 * pulse, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(size * 0.5, 0, size * 0.8, 0, Math.PI * 2); ctx.fill();
 
     } else {
         // --- STANDARD: KINETIC ---
