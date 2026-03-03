@@ -22,14 +22,8 @@ export function updatePhysics() {
             continue;
         }
 
-        // --- 1. Radius Growth (Only for Planets) ---
-        if (r1.isPlanet && r1.targetR && r1.r < r1.targetR) {
-            r1.r += (r1.targetR - r1.r) * 0.002;
-            r1.mass = r1.r * r1.r * 0.05;
-            if (r1.targetR - r1.r < 0.5) { r1.r = r1.targetR; r1.targetR = null; r1.mass = r1.r * r1.r * 0.05; }
-        } else {
-            r1.mass = r1.r * r1.r * 0.05;
-        }
+        // --- 1. Calculate Mass ---
+        r1.mass = r1.r * r1.r * 0.05;
 
         // --- 2. Planet Physics (Z-Depth, Orbit) ---
         if (r1.isPlanet) {
@@ -311,8 +305,8 @@ export function resolveInteraction(r1, r2) {
                 console.log("Count: " + (planetsBefore - 2) + ". Planets " + r1.name + " and " + r2.name + " destroyed.");
             }
             PLANET_CONFIG.LIMIT = Math.max(0, PLANET_CONFIG.LIMIT - 2);
-            r1.r = 0; r1.targetR = null; r1.vaporized = true; r1._destroyed = true;
-            r2.r = 0; r2.targetR = null; r2.vaporized = true; r2._destroyed = true;
+            r1.r = 0; r1.vaporized = true; r1._destroyed = true;
+            r2.r = 0; r2.vaporized = true; r2._destroyed = true;
             const idx1 = State.roids.indexOf(r1); if (idx1 !== -1) State.roids.splice(idx1, 1);
             const idx2 = State.roids.indexOf(r2); if (idx2 !== -1) State.roids.splice(idx2, 1);
             return;
@@ -330,8 +324,8 @@ export function resolveInteraction(r1, r2) {
             }
 
             let totalMass = planet.mass + asteroid.mass;
-            // DO NOT SHIFT PLANET POSITION TO PREVENT ERRATIC RUBBER-BANDING IN ELLIPTICAL ORBITS
-            planet.targetR = Math.min(Math.sqrt((Math.PI * planet.r * planet.r + Math.PI * asteroid.r * asteroid.r * 1.5) / Math.PI), PLANET_CONFIG.MAX_SIZE); // Slightly more growth
+            // Calculate new radius and instantly clamp it
+            planet.r = Math.min(Math.sqrt((Math.PI * planet.r * planet.r + Math.PI * asteroid.r * asteroid.r * 1.5) / Math.PI), PLANET_CONFIG.SIZE);
             planet.mass = totalMass;
 
             if (planet.id === State.homePlanetId && asteroid.r > ASTEROID_CONFIG.MIN_SIZE * 2) {
@@ -355,13 +349,13 @@ export function resolveInteraction(r1, r2) {
             if (!r1.isPlanet) {
                 const currentPlanets = State.roids.filter(r => r.isPlanet && !r._destroyed).length;
                 if (currentPlanets < PLANET_CONFIG.LIMIT) {
-                    r1.r = Math.max(newR, ASTEROID_CONFIG.MAX_SIZE + 10);
+                    r1.r = PLANET_CONFIG.SIZE;
                     initializePlanetAttributes(r1);
-                    r1.targetR = r1.r; r1.mass = totalMass * 0.05;
+                    r1.mass = totalMass * 0.05;
                     createExplosion(midVpX, midVpY, 60, '#00ffff', 10, 'spark');
                     AudioEngine.playPlanetExplosion(midX, midY, r1.z);
-                } else { r1.r = newR; r1.targetR = null; }
-            } else { r1.r = Math.min(newR, PLANET_CONFIG.MAX_SIZE); r1.targetR = Math.min(newR, PLANET_CONFIG.MAX_SIZE); r1.mass = totalMass * 0.05; }
+                } else { r1.r = newR; }
+            } else { r1.r = Math.min(newR, PLANET_CONFIG.SIZE); r1.mass = totalMass * 0.05; }
             r2._destroyed = true;
         } else if (isGiant1 || isGiant2) {
             const giant = isGiant1 ? r1 : r2;
@@ -395,7 +389,6 @@ export function resolveInteraction(r1, r2) {
             r1.xv = (r1.xv * r1.mass + r2.xv * r2.mass) / totalMass;
             r1.yv = (r1.yv * r1.mass + r2.yv * r2.mass) / totalMass;
             r1.r = Math.sqrt(r1.r * r1.r + r2.r * r2.r) * 1.05;
-            r1.targetR = null;
             AudioEngine.playSoftThud(midX, midY, r1.z);
             r2._destroyed = true;
         }

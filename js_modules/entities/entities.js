@@ -40,13 +40,19 @@ export function newPlayerShip() {
 
 export function createAsteroid(x, y, r, z = 0, forcedName = null) {
     let isPlanet = false;
+
+    // Determine if this asteroid should become a planet based on size request
     if (r > ASTEROID_CONFIG.MAX_SIZE) {
         const currentPlanets = State.roids.filter(ro => ro.isPlanet && !ro._destroyed).length;
         if (currentPlanets < PLANET_CONFIG.LIMIT && !State.victoryState && !(State.playerShip && State.playerShip.dead && State.playerShip.lives <= 0)) {
             isPlanet = true;
+            r = Math.min(r, PLANET_CONFIG.SIZE); // Cap at planet max
         } else {
-            r = ASTEROID_CONFIG.MAX_SIZE;
+            // Cannot spawn a planet, cap it at asteroid max
+            r = Math.min(r, ASTEROID_CONFIG.MAX_SIZE);
         }
+    } else {
+        r = Math.min(r, ASTEROID_CONFIG.MAX_SIZE); // Standard asteroid cap
     }
 
     let roid = {
@@ -64,7 +70,6 @@ export function createAsteroid(x, y, r, z = 0, forcedName = null) {
         textureData: null,
         rings: null,
         blinkNum: 0,
-        targetR: r,
         color: `hsl(${Math.random() * 360}, ${Math.random() * 10}%, ${15 + Math.random() * 35}%)` // Gray tones with brightness variation
     };
     if (isPlanet) initializePlanetAttributes(roid, null, forcedName);
@@ -137,12 +142,9 @@ export function initializePlanetAttributes(roid, forcedHue = null, forcedName = 
     let aHue = hue + (rng() * 40 - 20); // slight atmosphere shift
 
     let textureData = {
-        seed: seed,
         waterColor: `hsl(${hue}, ${wSat}%, ${wLight}%)`,
         landColor: `hsl(${hue + (rng() * 60 - 30)}, ${lSat}%, ${lLight}%)`, // Slightly shifted hue for land
         craterColor: `rgba(0, 0, 0, 0.25)`,
-        atmosphereColor: `hsl(${aHue}, ${wSat + 20}%, 60%)`, // Base color for rayleigh scattering
-        innerGradColor: `hsl(${hue}, ${wSat}%, ${Math.max(5, wLight - 20)}%)`, // Darker core
         landmasses: [],
         craters: []
     };
@@ -153,7 +155,6 @@ export function initializePlanetAttributes(roid, forcedHue = null, forcedName = 
         const vertexOffsets = [];
         for (let j = 0; j < vertices; j++) vertexOffsets.push(0.7 + rng() * 0.3);
         textureData.landmasses.push({ startAngle, radiusFactor, vertices, vertexOffsets });
-
     }
     for (let i = 0; i < 10; i++) {
         textureData.craters.push({

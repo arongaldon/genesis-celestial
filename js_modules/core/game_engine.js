@@ -33,20 +33,15 @@ export function createLevel() {
         State.homePlanetId = null;
     }
     else {
-        let planetSpawned = false;
         let planetX = (Math.random() - 0.5) * 5000;
         let planetY = (Math.random() - 0.5) * 5000;
-        let firstPlanet = createAsteroid(planetX, planetY, ASTEROID_CONFIG.MAX_SIZE + 1, 0, t("game.home_planet_name"));
+        let firstPlanet = createAsteroid(planetX, planetY, PLANET_CONFIG.SIZE, 0, t("game.home_planet_name"));
         State.roids.push(firstPlanet);
         State.homePlanetId = firstPlanet.id;
 
         if (firstPlanet.textureData) {
             firstPlanet.textureData.waterColor = `hsl(${SHIP_CONFIG.FRIENDLY_BLUE_HUE}, 60%, 30%)`;
-            firstPlanet.textureData.atmosphereColor = `hsl(${SHIP_CONFIG.FRIENDLY_BLUE_HUE}, 80%, 60%)`;
-            firstPlanet.textureData.innerGradColor = `hsl(${SHIP_CONFIG.FRIENDLY_BLUE_HUE}, 10%, 2%)`;
         }
-
-        planetSpawned = true;
     }
 
     createAsteroidBelt(0, 0, ASTEROID_CONFIG.INIT_INNER, WORLD_BOUNDS * 0.9, ASTEROID_CONFIG.COUNT);
@@ -228,8 +223,11 @@ export function winGame() {
 export function loop() {
     requestAnimationFrame(loop);
 
-    // Reset global transformation to prevent accumulation of effects like screen shake
+    // Reset global transformation and context state to prevent accumulation of effects
     DOM.canvasContext.resetTransform();
+    DOM.canvasContext.shadowBlur = 0;
+    DOM.canvasContext.globalAlpha = 1;
+    DOM.canvasContext.filter = 'none';
 
     // Sync HUD with game state
     updateHUD();
@@ -858,7 +856,7 @@ export function loop() {
 
     updatePhysics(); // Run asteroid merging and gravity simulation (uses World Coords)
 
-    DOM.canvasContext.shadowBlur = 10; DOM.canvasContext.lineCap = 'round'; DOM.canvasContext.lineJoin = 'round';
+    DOM.canvasContext.lineCap = 'round'; DOM.canvasContext.lineJoin = 'round';
 
     // --- Enemy Update and MOVEMENT/AI (Separated from Drawing for Z-order) ---
     let shipsToDraw = [];
@@ -2001,7 +1999,10 @@ export function loop() {
     }
     // --- End Enemy Update/AI ---
 
-    DOM.canvasContext.shadowColor = '#ffffff'; DOM.canvasContext.strokeStyle = 'white'; DOM.canvasContext.lineWidth = 1.5;
+    DOM.canvasContext.shadowColor = '#ffffff';
+    DOM.canvasContext.shadowBlur = 0;
+    DOM.canvasContext.lineWidth = 1;
+
 
     // Sort asteroids from Near to Far (Small Z to Large Z) with safety
     State.roids.sort((a, b) => {
@@ -2062,144 +2063,145 @@ export function loop() {
             vpY = r.y - State.worldOffsetY + State.height / 2;
         }
 
-        // Apply transformations for depth
-        DOM.canvasContext.save();
-        DOM.canvasContext.translate(vpX, vpY); // Translate to Viewport Position
-        DOM.canvasContext.scale(depthScale, depthScale);
+        // FRUSTUM CULLING FOR ASTEROIDS AND PLANETS
+        const pad = Math.max(r.r * depthScale + 150, 200);
+        const onScreen = vpX > -pad && vpX < State.width + pad && vpY > -pad && vpY < State.height + pad;
 
-        // Apply calculated depth alpha / brightness
-        DOM.canvasContext.globalAlpha = depthAlpha;
-        if (r.isPlanet && depthBrightness < 1) {
-            DOM.canvasContext.filter = `brightness(${depthBrightness})`;
-        }
+        if (onScreen) {
+            // Apply transformations for depth
+            DOM.canvasContext.save();
+            DOM.canvasContext.translate(vpX, vpY); // Translate to Viewport Position
+            DOM.canvasContext.scale(depthScale, depthScale);
 
-        // Draw asteroid blinking if newly created
-        if (r.blinkNum % 2 !== 0) { DOM.canvasContext.globalAlpha *= 0.3; }
-
-
-        if (r.isPlanet) {
-
-            // === DRAW PLANET RINGS (BACK HALF) ===
-            if (r.rings) {
-                drawRings(DOM.canvasContext, r.rings, r.r, depthScale);
-            }
-
-            // Draw planet texture and name
-            DOM.canvasContext.shadowBlur = 30; DOM.canvasContext.shadowColor = r.textureData.atmosphereColor;
-            drawPlanetTexture(DOM.canvasContext, 0, 0, r.r, r.textureData, r.x, r.y); // Pass world coords for lighting
-
-            // === DRAW PLANET RINGS (FRONT HALF) ===
-            if (r.rings) {
-                DOM.canvasContext.save();
-                DOM.canvasContext.rotate(r.rings.tilt);
-                r.rings.bands.forEach(band => {
-                    const bandRadius = r.r * band.rRatio;
-                    const bandWidth = r.r * band.wRatio;
-                    const outerRadius = bandRadius * depthScale;
-
-                    DOM.canvasContext.lineWidth = bandWidth * depthScale;
-                    DOM.canvasContext.strokeStyle = band.color;
-                    DOM.canvasContext.globalAlpha = band.alpha * depthAlpha;
-                    DOM.canvasContext.shadowBlur = 0;
-
-                    DOM.canvasContext.beginPath();
-                    DOM.canvasContext.ellipse(0, 0, outerRadius, outerRadius * 0.15, 0, Math.PI, Math.PI * 2, false);
-                    DOM.canvasContext.stroke();
-                });
-                DOM.canvasContext.restore();
-            }
-
-            // Draw Name
+            // Apply calculated depth alpha / brightness
             DOM.canvasContext.globalAlpha = depthAlpha;
-            DOM.canvasContext.fillStyle = 'white';
-            DOM.canvasContext.font = `bold ${28 / depthScale}px Courier New`;
-            DOM.canvasContext.textAlign = 'center';
+            if (r.isPlanet && depthBrightness < 1) {
+                DOM.canvasContext.filter = `brightness(${depthBrightness})`;
+            }
 
-            // Add a slight black stroke so it's readable against bright planets
-            DOM.canvasContext.strokeStyle = 'rgba(0,0,0,0.8)';
-            DOM.canvasContext.lineWidth = 3 / depthScale;
-            DOM.canvasContext.strokeText(r.name, 0, r.r + (40 / depthScale));
+            // Draw asteroid blinking if newly created
+            if (r.blinkNum % 2 !== 0) { DOM.canvasContext.globalAlpha *= 0.3; }
 
-            DOM.canvasContext.fillText(r.name, 0, r.r + (40 / depthScale));
 
-        } else {
-            // Draw standard asteroid shape
-            if (r.isHot) {
-                DOM.canvasContext.shadowBlur = 20;
-                DOM.canvasContext.shadowColor = '#ff6600';
-                DOM.canvasContext.strokeStyle = '#ffcc00';
+            if (r.isPlanet) {
+
+                // === DRAW PLANET RINGS (BACK HALF) ===
+                if (r.rings) {
+                    drawRings(DOM.canvasContext, r.rings, r.r, depthScale);
+                }
+
+                // Draw planet texture and name
+                drawPlanetTexture(DOM.canvasContext, 0, 0, r.r, r.textureData);
+
+                // === DRAW PLANET RINGS (FRONT HALF) ===
+                if (r.rings) {
+                    DOM.canvasContext.save();
+                    DOM.canvasContext.rotate(r.rings.tilt);
+                    r.rings.bands.forEach(band => {
+                        const bandRadius = r.r * band.rRatio;
+                        const bandWidth = r.r * band.wRatio;
+                        const outerRadius = bandRadius * depthScale;
+
+                        DOM.canvasContext.lineWidth = bandWidth * depthScale;
+                        DOM.canvasContext.strokeStyle = band.color;
+                        DOM.canvasContext.globalAlpha = band.alpha * depthAlpha;
+                        DOM.canvasContext.shadowBlur = 0;
+
+                        DOM.canvasContext.beginPath();
+                        DOM.canvasContext.ellipse(0, 0, outerRadius, outerRadius * 0.15, 0, Math.PI, Math.PI * 2, false);
+                        DOM.canvasContext.stroke();
+                    });
+                    DOM.canvasContext.restore();
+                }
+
+                // Draw Name
+                DOM.canvasContext.globalAlpha = depthAlpha;
+                DOM.canvasContext.fillStyle = 'white';
+                DOM.canvasContext.font = `bold ${28 / depthScale}px Courier New`;
+                DOM.canvasContext.textAlign = 'center';
+
+                DOM.canvasContext.fillText(r.name, 0, r.r + (40 / depthScale));
+
             } else {
-                DOM.canvasContext.shadowBlur = 0; // Optimization: Disable blur for standard asteroids
-                DOM.canvasContext.strokeStyle = 'rgba(255, 255, 255, 0.4)'; // Softer outline for more realistic feel
-            }
+                // Draw standard asteroid shape
+                if (r.isHot) {
+                    DOM.canvasContext.shadowBlur = 20;
+                    DOM.canvasContext.shadowColor = '#ff6600';
+                    DOM.canvasContext.strokeStyle = '#ffcc00';
+                } else {
+                    DOM.canvasContext.shadowBlur = 0; // Optimization: Disable blur for standard asteroids
+                }
 
-            DOM.canvasContext.fillStyle = r.color; // Dark gray base fill
-            DOM.canvasContext.beginPath();
-            for (let j = 0; j < r.vert; j++) {
-                const px = r.r * r.offs[j] * Math.cos(r.a + j * Math.PI * 2 / r.vert);
-                const py = r.r * r.offs[j] * Math.sin(r.a + j * Math.PI * 2 / r.vert);
-                if (j === 0) DOM.canvasContext.moveTo(px, py); else DOM.canvasContext.lineTo(px, py);
-            }
-            DOM.canvasContext.closePath();
-            DOM.canvasContext.fill();
-
-            // Dynamic volumetric shadow based on global light source
-            const dx = GLOBAL_LIGHT.X - r.x;
-            const dy = GLOBAL_LIGHT.Y - r.y;
-            const lDist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-            const lDirX = dx / lDist;
-            const lDirY = dy / lDist;
-
-            let shadowGrad = DOM.canvasContext.createLinearGradient(
-                lDirX * r.r, lDirY * r.r, // Bright side facing light
-                -lDirX * r.r, -lDirY * r.r // Dark side away from light
-            );
-            shadowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.15)'); // Soft highlight on light side
-            shadowGrad.addColorStop(0.4, 'rgba(0, 0, 0, 0)');        // Transparent mid
-            shadowGrad.addColorStop(0.8, 'rgba(0, 0, 0, 1.0)');      // Pitch black on dark side
-            DOM.canvasContext.fillStyle = shadowGrad;
-            DOM.canvasContext.fill();
-
-            // Draw Craters
-            DOM.canvasContext.fillStyle = 'rgba(0, 0, 0, 0.4)';
-            DOM.canvasContext.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-            DOM.canvasContext.lineWidth = 1;
-            // Deterministic pseudo-random generation to keep craters bound to specific asteroid ID
-            const craterCount = 2 + (r.id % 3);
-            for (let c = 0; c < craterCount; c++) {
-                let pseudoRand1 = ((r.id * 13 + c * 29) % 100) / 100;
-                let pseudoRand2 = ((r.id * 17 + c * 31) % 100) / 100;
-                let pseudoRand3 = ((r.id * 19 + c * 37) % 100) / 100;
-
-                let dist = r.r * 0.5 * pseudoRand1;
-                let angle = pseudoRand2 * Math.PI * 2 + r.a; // Revolve with asteroid rotation
-                let crx = Math.cos(angle) * dist;
-                let cry = Math.sin(angle) * dist;
-                let crr = r.r * 0.08 + (pseudoRand3 * r.r * 0.15); // Scale crater size relative to asteroid
-
+                DOM.canvasContext.fillStyle = r.color; // Dark gray base fill
                 DOM.canvasContext.beginPath();
-                // Perspective crater ellipse orienting towards center
-                DOM.canvasContext.ellipse(crx, cry, crr, crr * 0.85, angle, 0, Math.PI * 2);
-                DOM.canvasContext.fill();
-                DOM.canvasContext.stroke();
-            }
-
-            // Draw lava veins if hot
-            if (r.isHot) {
-                DOM.canvasContext.globalAlpha = 0.6;
-                DOM.canvasContext.strokeStyle = '#ff3300';
-                DOM.canvasContext.lineWidth = 2;
-                DOM.canvasContext.beginPath();
-                for (let j = 0; j < r.vert; j += 2) {
-                    const px = r.r * 0.5 * r.offs[j] * Math.cos(r.a + j * Math.PI * 2 / r.vert);
-                    const py = r.r * 0.5 * r.offs[j] * Math.sin(r.a + j * Math.PI * 2 / r.vert);
+                for (let j = 0; j < r.vert; j++) {
+                    const px = r.r * r.offs[j] * Math.cos(r.a + j * Math.PI * 2 / r.vert);
+                    const py = r.r * r.offs[j] * Math.sin(r.a + j * Math.PI * 2 / r.vert);
                     if (j === 0) DOM.canvasContext.moveTo(px, py); else DOM.canvasContext.lineTo(px, py);
                 }
-                DOM.canvasContext.stroke();
-                DOM.canvasContext.globalAlpha = 1;
+                DOM.canvasContext.closePath();
+                DOM.canvasContext.fill();
+
+                // Dynamic volumetric shadow based on global light source
+                const dx = GLOBAL_LIGHT.X - r.x;
+                const dy = GLOBAL_LIGHT.Y - r.y;
+                const lDist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+                const lDirX = dx / lDist;
+                const lDirY = dy / lDist;
+
+                let shadowGrad = DOM.canvasContext.createLinearGradient(
+                    lDirX * r.r, lDirY * r.r, // Bright side facing light
+                    -lDirX * r.r, -lDirY * r.r // Dark side away from light
+                );
+                shadowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.15)'); // Soft highlight on light side
+                shadowGrad.addColorStop(0.4, 'rgba(0, 0, 0, 0)');        // Transparent mid
+                shadowGrad.addColorStop(0.8, 'rgba(0, 0, 0, 1.0)');      // Pitch black on dark side
+                DOM.canvasContext.fillStyle = shadowGrad;
+                DOM.canvasContext.fill();
+
+                // Draw Craters (Only on larger asteroids, and only on half of them for performance/variety)
+                if (r.r >= ASTEROID_CONFIG.MIN_SIZE * 1.5 && r.id % 2 === 0) {
+                    DOM.canvasContext.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                    DOM.canvasContext.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                    DOM.canvasContext.lineWidth = 1;
+                    // Deterministic pseudo-random generation to keep craters bound to specific asteroid ID
+                    const craterCount = 2 + (r.id % 3);
+                    for (let c = 0; c < craterCount; c++) {
+                        let pseudoRand1 = ((r.id * 13 + c * 29) % 100) / 100;
+                        let pseudoRand2 = ((r.id * 17 + c * 31) % 100) / 100;
+                        let pseudoRand3 = ((r.id * 19 + c * 37) % 100) / 100;
+
+                        let dist = r.r * 0.5 * pseudoRand1;
+                        let angle = pseudoRand2 * Math.PI * 2 + r.a; // Revolve with asteroid rotation
+                        let crx = Math.cos(angle) * dist;
+                        let cry = Math.sin(angle) * dist;
+                        let crr = r.r * 0.08 + (pseudoRand3 * r.r * 0.15); // Scale crater size relative to asteroid
+
+                        DOM.canvasContext.beginPath();
+                        // Perspective crater ellipse orienting towards center
+                        DOM.canvasContext.ellipse(crx, cry, crr, crr * 0.85, angle, 0, Math.PI * 2);
+                        DOM.canvasContext.fill();
+                        DOM.canvasContext.stroke();
+                    }
+                }
+
+                // Draw lava veins if hot
+                if (r.isHot) {
+                    DOM.canvasContext.globalAlpha = 0.6;
+                    DOM.canvasContext.strokeStyle = '#ff3300';
+                    DOM.canvasContext.lineWidth = 2;
+                    DOM.canvasContext.beginPath();
+                    for (let j = 0; j < r.vert; j += 2) {
+                        const px = r.r * 0.5 * r.offs[j] * Math.cos(r.a + j * Math.PI * 2 / r.vert);
+                        const py = r.r * 0.5 * r.offs[j] * Math.sin(r.a + j * Math.PI * 2 / r.vert);
+                        if (j === 0) DOM.canvasContext.moveTo(px, py); else DOM.canvasContext.lineTo(px, py);
+                    }
+                    DOM.canvasContext.stroke();
+                    DOM.canvasContext.globalAlpha = 1;
+                }
             }
-        }
-        DOM.canvasContext.restore(); // Restore context
+            DOM.canvasContext.restore(); // Restore context
+        } // End onScreen check
 
         // Check collision with player (World Coords)
         if (r.z < 0.5 && !State.playerShip.dead) {
@@ -2266,238 +2268,247 @@ export function loop() {
         const vpX = (shipToDraw.x - State.worldOffsetX) * depthScale + State.width / 2;
         const vpY = (shipToDraw.y - State.worldOffsetY) * depthScale + State.height / 2;
 
-        // Drawing enemy
-        DOM.canvasContext.shadowBlur = 15;
-
-        // Proximity fading for friends
-        let alpha = depthAlpha;
-        if (shipToDraw.isFriendly) {
-            const distToPlayer = Math.hypot(State.worldOffsetX - shipToDraw.x, State.worldOffsetY - shipToDraw.y);
-            const fadeStart = 300;
-            const fadeEnd = 50;
-            if (distToPlayer < fadeStart) {
-                const ratio = Math.max(0, (distToPlayer - fadeEnd) / (fadeStart - fadeEnd));
-                alpha *= 0.4 + 0.6 * ratio; // Fades to 40% alpha (more visible)
-            }
+        if (shipToDraw.shieldHitTimer > 0) {
+            shipToDraw.shieldHitTimer--;
         }
 
-        // If blinking, reduce opacity (for invulnerability feedback)
-        if (shipToDraw.blinkNum % 2 !== 0) { DOM.canvasContext.globalAlpha = 0.5; }
-        else { DOM.canvasContext.globalAlpha = alpha; } // Apply fading/depth alpha
+        // FRUSTUM CULLING FOR SHIPS
+        const pad = Math.max((shipToDraw.r || 50) * depthScale + 150, 200);
+        const onScreen = vpX > -pad && vpX < State.width + pad && vpY > -pad && vpY < State.height + pad;
 
-        DOM.canvasContext.save();
-        DOM.canvasContext.translate(vpX, vpY); // Translate to Viewport Position
-        DOM.canvasContext.scale(depthScale, depthScale); // Apply depth scaling
-        DOM.canvasContext.rotate(shipToDraw.a); // Standard rotation (CW positive)
-
-        if (shipToDraw.type === 'ship') {
-
-            // Individual evolution: State.ships match their OWN score visuals
-            const tier = Math.floor((shipToDraw.score || 0) / SHIP_CONFIG.EVOLUTION_SCORE_STEP);
-            const r = shipToDraw.r;
-
-            // Generate Palette based on fleetHue (Host Planet)
-            const HULL_COLOR = `hsl(${shipToDraw.fleetHue}, 60%, 30%)`;
-            const HULL_BORDER = `hsl(${shipToDraw.fleetHue}, 40%, 50%)`; // Lighter border
-            const DETAIL_COLOR = `hsl(${shipToDraw.fleetHue}, 80%, 60%)`;
-            const ACCENT_COLOR = `hsl(${(shipToDraw.fleetHue + 180) % 360}, 90%, 60%)`; // Complementary accent
-            const THRUST_COLOR = `hsl(${shipToDraw.fleetHue}, 100%, 70%)`;
-            const COCKPIT_GRAD_1 = `hsl(${shipToDraw.fleetHue}, 100%, 80%)`;
-            const COCKPIT_GRAD_2 = `hsl(${shipToDraw.fleetHue}, 100%, 50%)`;
-
-            // Draw generic shapes using standard function
-            drawShipShape({
-                ctx: DOM.canvasContext,
-                r: r,
-                tier: tier,
-                hullColor: HULL_COLOR,
-                borderColor: HULL_BORDER,
-                detailColor: DETAIL_COLOR,
-                accentColor: ACCENT_COLOR,
-                thrustColor: THRUST_COLOR,
-                isThrusting: true, // Always slightly thrusting for effect
-                cockpitGrad1: COCKPIT_GRAD_1,
-                cockpitGrad2: COCKPIT_GRAD_2
-            });
-
-
-
-            DOM.canvasContext.shadowBlur = 0;
-            // DRAW HEART FOR FRIENDS
-            if (shipToDraw.isFriendly) {
-                drawHeart(DOM.canvasContext, 0, -5, 8);
-            }
-        }
-        else {
-            // MODERN HEXAGONAL STATION DESIGN
-            // Sleek geometric station with glowing energy rings and pulsing core
-
-            const haloColor = `hsl(${shipToDraw.fleetHue}, 100%, 70%)`;
-            const bodyColor = `hsl(${shipToDraw.fleetHue}, 80%, 50%)`;
-            const coreColor = `hsl(${(shipToDraw.fleetHue + 120) % 360}, 100%, 60%)`;
-            const accentColor = `hsl(${shipToDraw.fleetHue}, 90%, 65%)`;
-
-            const stationR = shipToDraw.r;
-
-            // === OUTER HEXAGONAL STRUCTURE ===
-            DOM.canvasContext.shadowBlur = 25;
-            DOM.canvasContext.shadowColor = haloColor;
-
-            // Draw hexagon
-            DOM.canvasContext.beginPath();
-            for (let i = 0; i < 6; i++) {
-                const angle = (i * Math.PI / 3) + shipToDraw.a;
-                const x = Math.cos(angle) * stationR * 1.1;
-                const y = Math.sin(angle) * stationR * 1.1;
-                if (i === 0) DOM.canvasContext.moveTo(x, y);
-                else DOM.canvasContext.lineTo(x, y);
-            }
-            DOM.canvasContext.closePath();
-
-            // Hexagon fill with gradient
-            let hexGrad = DOM.canvasContext.createRadialGradient(0, 0, 0, 0, 0, stationR * 1.1);
-            hexGrad.addColorStop(0, `hsl(${shipToDraw.fleetHue}, 60%, 40%)`);
-            hexGrad.addColorStop(0.7, `hsl(${shipToDraw.fleetHue}, 70%, 25%)`);
-            hexGrad.addColorStop(1, `hsl(${shipToDraw.fleetHue}, 50%, 15%)`);
-
-            DOM.canvasContext.fillStyle = hexGrad;
-            DOM.canvasContext.fill();
-
-            // Glowing hexagon outline
-            DOM.canvasContext.lineWidth = 4;
-            DOM.canvasContext.strokeStyle = haloColor;
-            DOM.canvasContext.stroke();
-
-            // === ROTATING ENERGY RINGS ===
-            DOM.canvasContext.shadowBlur = 20;
-
-            // Outer ring
-            DOM.canvasContext.lineWidth = 3;
-            DOM.canvasContext.strokeStyle = accentColor;
-            DOM.canvasContext.beginPath();
-            DOM.canvasContext.arc(0, 0, stationR * 0.9, 0, Math.PI * 2);
-            DOM.canvasContext.stroke();
-
-            // Middle ring (slightly rotated)
-            DOM.canvasContext.lineWidth = 2;
-            DOM.canvasContext.strokeStyle = bodyColor;
-            DOM.canvasContext.beginPath();
-            DOM.canvasContext.arc(0, 0, stationR * 0.7, 0, Math.PI * 2);
-            DOM.canvasContext.stroke();
-
-            // === CONNECTING SPOKES (6 spokes to match hexagon) ===
+        if (onScreen) {
+            // Drawing enemy
             DOM.canvasContext.shadowBlur = 15;
-            DOM.canvasContext.lineWidth = 2;
-            DOM.canvasContext.strokeStyle = accentColor;
 
-            for (let k = 0; k < 6; k++) {
-                const angle = (k * Math.PI / 3) + shipToDraw.a;
-                const rInner = stationR * 0.4;
-                const rOuter = stationR * 0.95;
-
-                DOM.canvasContext.beginPath();
-                DOM.canvasContext.moveTo(Math.cos(angle) * rInner, Math.sin(angle) * rInner);
-                DOM.canvasContext.lineTo(Math.cos(angle) * rOuter, Math.sin(angle) * rOuter);
-                DOM.canvasContext.stroke();
-
-                // Small nodes at spoke ends
-                DOM.canvasContext.fillStyle = haloColor;
-                DOM.canvasContext.beginPath();
-                DOM.canvasContext.arc(Math.cos(angle) * rOuter, Math.sin(angle) * rOuter, stationR * 0.06, 0, Math.PI * 2);
-                DOM.canvasContext.fill();
-            }
-
-            // === PULSING CORE ===
-            DOM.canvasContext.shadowBlur = 30;
-            DOM.canvasContext.shadowColor = coreColor;
-
-            // Pulsing effect
-            const pulsePhase = (Date.now() % 2000) / 2000; // 0 to 1 over 2 seconds
-            const pulseSize = 0.3 + Math.sin(pulsePhase * Math.PI * 2) * 0.05;
-
-            // Core gradient
-            let coreGrad = DOM.canvasContext.createRadialGradient(0, 0, 0, 0, 0, stationR * pulseSize);
-            coreGrad.addColorStop(0, '#ffffff');
-            coreGrad.addColorStop(0.3, coreColor);
-            coreGrad.addColorStop(1, bodyColor);
-
-            DOM.canvasContext.fillStyle = coreGrad;
-            DOM.canvasContext.beginPath();
-            DOM.canvasContext.arc(0, 0, stationR * pulseSize, 0, Math.PI * 2);
-            DOM.canvasContext.fill();
-
-            // Core bright outline
-            DOM.canvasContext.strokeStyle = '#ffffff';
-            DOM.canvasContext.lineWidth = 2;
-            DOM.canvasContext.stroke();
-
-            // === ENERGY PARTICLES (Small glowing dots around the station) ===
-            DOM.canvasContext.shadowBlur = 10;
-            for (let p = 0; p < 8; p++) {
-                const particleAngle = (p * Math.PI / 4) + (Date.now() / 1000) + shipToDraw.a;
-                const particleR = stationR * (0.8 + Math.sin((Date.now() / 500) + p) * 0.1);
-                const px = Math.cos(particleAngle) * particleR;
-                const py = Math.sin(particleAngle) * particleR;
-
-                DOM.canvasContext.fillStyle = `hsla(${shipToDraw.fleetHue}, 100%, 80%, ${0.6 + Math.random() * 0.4})`;
-                DOM.canvasContext.beginPath();
-                DOM.canvasContext.arc(px, py, stationR * 0.03, 0, Math.PI * 2);
-                DOM.canvasContext.fill();
-            }
-
-            DOM.canvasContext.shadowBlur = 0;
-
-            // DRAW HEART FOR FRIENDLY STATIONS
+            // Proximity fading for friends
+            let alpha = depthAlpha;
             if (shipToDraw.isFriendly) {
-                drawHeart(DOM.canvasContext, 0, -shipToDraw.r * 0.1, shipToDraw.r * 0.2);
+                const distToPlayer = Math.hypot(State.worldOffsetX - shipToDraw.x, State.worldOffsetY - shipToDraw.y);
+                const fadeStart = 300;
+                const fadeEnd = 50;
+                if (distToPlayer < fadeStart) {
+                    const ratio = Math.max(0, (distToPlayer - fadeEnd) / (fadeStart - fadeEnd));
+                    alpha *= 0.4 + 0.6 * ratio; // Fades to 40% alpha (more visible)
+                }
             }
-        }
 
-        DOM.canvasContext.restore();
-        DOM.canvasContext.globalAlpha = 1;
+            // If blinking, reduce opacity (for invulnerability feedback)
+            if (shipToDraw.blinkNum % 2 !== 0) { DOM.canvasContext.globalAlpha = 0.5; }
+            else { DOM.canvasContext.globalAlpha = alpha; } // Apply fading/depth alpha
 
-        let currentHP = shipToDraw.structureHP;
-        let maxHP = shipToDraw.type === 'station' ? STATION_CONFIG.RESISTANCE : SHIP_CONFIG.RESISTANCE;
-        let shieldOpacity = 0;
-        let r, g, b;
+            DOM.canvasContext.save();
+            DOM.canvasContext.translate(vpX, vpY); // Translate to Viewport Position
+            DOM.canvasContext.scale(depthScale, depthScale); // Apply depth scaling
+            DOM.canvasContext.rotate(shipToDraw.a); // Standard rotation (CW positive)
 
-        if (currentHP === maxHP) {
-            r = 0; g = 255; b = 255; // Cian
-            shieldOpacity = 0.8;
-        } else {
-            shieldOpacity = 0;
-        }
+            if (shipToDraw.type === 'ship') {
 
-        if (shipToDraw.type === 'station') {
-            // Shield is invisible when at far Z
-            if (shipToDraw.z >= 0.5) {
-                return;
-            }
-            if (currentHP >= STATION_CONFIG.RESISTANCE * 2 / 3) { // Phase 1: Green/Blue - High Shield
-                r = 0; g = 255; b = 255; // Cian
-                shieldOpacity = 1.0;
-            } else if (currentHP >= STATION_CONFIG.RESISTANCE / 2) { // Phase 2: Yellow/Orange - Mid Shield/Warning
-                r = 255; g = 165; b = 0;
-                shieldOpacity = 0.7;
-            } else { // Phase 3: Red - Critical Structure
-                r = 255; g = 0; b = 0;
-                shieldOpacity = 0.5;
-            }
-        }
+                // Individual evolution: State.ships match their OWN score visuals
+                const tier = Math.floor((shipToDraw.score || 0) / SHIP_CONFIG.EVOLUTION_SCORE_STEP);
+                const r = shipToDraw.r;
 
-        DOM.canvasContext.lineWidth = 2;
-        if (shieldOpacity > 0) {
-            if (shipToDraw.shieldHitTimer > 0) {
-                DOM.canvasContext.shadowColor = '#fff';
-                DOM.canvasContext.strokeStyle = `rgba(255,255,255,${shieldOpacity})`;
-                shipToDraw.shieldHitTimer--;
+                // Generate Palette based on fleetHue (Host Planet)
+                const HULL_COLOR = `hsl(${shipToDraw.fleetHue}, 60%, 30%)`;
+                const HULL_BORDER = `hsl(${shipToDraw.fleetHue}, 40%, 50%)`; // Lighter border
+                const DETAIL_COLOR = `hsl(${shipToDraw.fleetHue}, 80%, 60%)`;
+                const ACCENT_COLOR = `hsl(${(shipToDraw.fleetHue + 180) % 360}, 90%, 60%)`; // Complementary accent
+                const THRUST_COLOR = `hsl(${shipToDraw.fleetHue}, 100%, 70%)`;
+                const COCKPIT_GRAD_1 = `hsl(${shipToDraw.fleetHue}, 100%, 80%)`;
+                const COCKPIT_GRAD_2 = `hsl(${shipToDraw.fleetHue}, 100%, 50%)`;
+
+                // Draw generic shapes using standard function
+                drawShipShape({
+                    ctx: DOM.canvasContext,
+                    r: r,
+                    tier: tier,
+                    hullColor: HULL_COLOR,
+                    borderColor: HULL_BORDER,
+                    detailColor: DETAIL_COLOR,
+                    accentColor: ACCENT_COLOR,
+                    thrustColor: THRUST_COLOR,
+                    isThrusting: true, // Always slightly thrusting for effect
+                    cockpitGrad1: COCKPIT_GRAD_1,
+                    cockpitGrad2: COCKPIT_GRAD_2
+                });
+
+
+
+                DOM.canvasContext.shadowBlur = 0;
+                // DRAW HEART FOR FRIENDS
+                if (shipToDraw.isFriendly) {
+                    drawHeart(DOM.canvasContext, 0, -5, 8);
+                }
             }
             else {
-                DOM.canvasContext.shadowColor = `rgb(${r},${g},${b})`;
-                DOM.canvasContext.strokeStyle = `rgba(${r},${g},${b},${shieldOpacity})`;
+                // MODERN HEXAGONAL STATION DESIGN
+                // Sleek geometric station with glowing energy rings and pulsing core
+
+                const haloColor = `hsl(${shipToDraw.fleetHue}, 100%, 70%)`;
+                const bodyColor = `hsl(${shipToDraw.fleetHue}, 80%, 50%)`;
+                const coreColor = `hsl(${(shipToDraw.fleetHue + 120) % 360}, 100%, 60%)`;
+                const accentColor = `hsl(${shipToDraw.fleetHue}, 90%, 65%)`;
+
+                const stationR = shipToDraw.r;
+
+                // === OUTER HEXAGONAL STRUCTURE ===
+                DOM.canvasContext.shadowBlur = 25;
+                DOM.canvasContext.shadowColor = haloColor;
+
+                // Draw hexagon
+                DOM.canvasContext.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i * Math.PI / 3) + shipToDraw.a;
+                    const x = Math.cos(angle) * stationR * 1.1;
+                    const y = Math.sin(angle) * stationR * 1.1;
+                    if (i === 0) DOM.canvasContext.moveTo(x, y);
+                    else DOM.canvasContext.lineTo(x, y);
+                }
+                DOM.canvasContext.closePath();
+
+                // Hexagon fill with gradient
+                let hexGrad = DOM.canvasContext.createRadialGradient(0, 0, 0, 0, 0, stationR * 1.1);
+                hexGrad.addColorStop(0, `hsl(${shipToDraw.fleetHue}, 60%, 40%)`);
+                hexGrad.addColorStop(0.7, `hsl(${shipToDraw.fleetHue}, 70%, 25%)`);
+                hexGrad.addColorStop(1, `hsl(${shipToDraw.fleetHue}, 50%, 15%)`);
+
+                DOM.canvasContext.fillStyle = hexGrad;
+                DOM.canvasContext.fill();
+
+                // Glowing hexagon outline
+                DOM.canvasContext.lineWidth = 4;
+                DOM.canvasContext.strokeStyle = haloColor;
+                DOM.canvasContext.stroke();
+
+                // === ROTATING ENERGY RINGS ===
+                DOM.canvasContext.shadowBlur = 20;
+
+                // Outer ring
+                DOM.canvasContext.lineWidth = 3;
+                DOM.canvasContext.strokeStyle = accentColor;
+                DOM.canvasContext.beginPath();
+                DOM.canvasContext.arc(0, 0, stationR * 0.9, 0, Math.PI * 2);
+                DOM.canvasContext.stroke();
+
+                // Middle ring (slightly rotated)
+                DOM.canvasContext.lineWidth = 2;
+                DOM.canvasContext.strokeStyle = bodyColor;
+                DOM.canvasContext.beginPath();
+                DOM.canvasContext.arc(0, 0, stationR * 0.7, 0, Math.PI * 2);
+                DOM.canvasContext.stroke();
+
+                // === CONNECTING SPOKES (6 spokes to match hexagon) ===
+                DOM.canvasContext.shadowBlur = 15;
+                DOM.canvasContext.lineWidth = 2;
+                DOM.canvasContext.strokeStyle = accentColor;
+
+                for (let k = 0; k < 6; k++) {
+                    const angle = (k * Math.PI / 3) + shipToDraw.a;
+                    const rInner = stationR * 0.4;
+                    const rOuter = stationR * 0.95;
+
+                    DOM.canvasContext.beginPath();
+                    DOM.canvasContext.moveTo(Math.cos(angle) * rInner, Math.sin(angle) * rInner);
+                    DOM.canvasContext.lineTo(Math.cos(angle) * rOuter, Math.sin(angle) * rOuter);
+                    DOM.canvasContext.stroke();
+
+                    // Small nodes at spoke ends
+                    DOM.canvasContext.fillStyle = haloColor;
+                    DOM.canvasContext.beginPath();
+                    DOM.canvasContext.arc(Math.cos(angle) * rOuter, Math.sin(angle) * rOuter, stationR * 0.06, 0, Math.PI * 2);
+                    DOM.canvasContext.fill();
+                }
+
+                // === PULSING CORE ===
+                DOM.canvasContext.shadowBlur = 30;
+                DOM.canvasContext.shadowColor = coreColor;
+
+                // Pulsing effect
+                const pulsePhase = (Date.now() % 2000) / 2000; // 0 to 1 over 2 seconds
+                const pulseSize = 0.3 + Math.sin(pulsePhase * Math.PI * 2) * 0.05;
+
+                // Core gradient
+                let coreGrad = DOM.canvasContext.createRadialGradient(0, 0, 0, 0, 0, stationR * pulseSize);
+                coreGrad.addColorStop(0, '#ffffff');
+                coreGrad.addColorStop(0.3, coreColor);
+                coreGrad.addColorStop(1, bodyColor);
+
+                DOM.canvasContext.fillStyle = coreGrad;
+                DOM.canvasContext.beginPath();
+                DOM.canvasContext.arc(0, 0, stationR * pulseSize, 0, Math.PI * 2);
+                DOM.canvasContext.fill();
+
+                // Core bright outline
+                DOM.canvasContext.strokeStyle = '#ffffff';
+                DOM.canvasContext.lineWidth = 2;
+                DOM.canvasContext.stroke();
+
+                // === ENERGY PARTICLES (Small glowing dots around the station) ===
+                DOM.canvasContext.shadowBlur = 10;
+                for (let p = 0; p < 8; p++) {
+                    const particleAngle = (p * Math.PI / 4) + (Date.now() / 1000) + shipToDraw.a;
+                    const particleR = stationR * (0.8 + Math.sin((Date.now() / 500) + p) * 0.1);
+                    const px = Math.cos(particleAngle) * particleR;
+                    const py = Math.sin(particleAngle) * particleR;
+
+                    DOM.canvasContext.fillStyle = `hsla(${shipToDraw.fleetHue}, 100%, 80%, ${0.6 + Math.random() * 0.4})`;
+                    DOM.canvasContext.beginPath();
+                    DOM.canvasContext.arc(px, py, stationR * 0.03, 0, Math.PI * 2);
+                    DOM.canvasContext.fill();
+                }
+
+                DOM.canvasContext.shadowBlur = 0;
+
+                // DRAW HEART FOR FRIENDLY STATIONS
+                if (shipToDraw.isFriendly) {
+                    drawHeart(DOM.canvasContext, 0, -shipToDraw.r * 0.1, shipToDraw.r * 0.2);
+                }
             }
-            DOM.canvasContext.beginPath(); DOM.canvasContext.arc(vpX, vpY, shipToDraw.r + 10, 0, Math.PI * 2); DOM.canvasContext.stroke();
-        }
+
+            DOM.canvasContext.restore();
+            DOM.canvasContext.globalAlpha = 1;
+
+            let currentHP = shipToDraw.structureHP;
+            let maxHP = shipToDraw.type === 'station' ? STATION_CONFIG.RESISTANCE : SHIP_CONFIG.RESISTANCE;
+            let shieldOpacity = 0;
+            let r, g, b;
+
+            if (currentHP === maxHP) {
+                r = 0; g = 255; b = 255; // Cian
+                shieldOpacity = 0.8;
+            } else {
+                shieldOpacity = 0;
+            }
+
+            if (shipToDraw.type === 'station') {
+                // Shield is invisible when at far Z
+                if (shipToDraw.z >= 0.5) {
+                    return;
+                }
+                if (currentHP >= STATION_CONFIG.RESISTANCE * 2 / 3) { // Phase 1: Green/Blue - High Shield
+                    r = 0; g = 255; b = 255; // Cian
+                    shieldOpacity = 1.0;
+                } else if (currentHP >= STATION_CONFIG.RESISTANCE / 2) { // Phase 2: Yellow/Orange - Mid Shield/Warning
+                    r = 255; g = 165; b = 0;
+                    shieldOpacity = 0.7;
+                } else { // Phase 3: Red - Critical Structure
+                    r = 255; g = 0; b = 0;
+                    shieldOpacity = 0.5;
+                }
+            }
+
+            DOM.canvasContext.lineWidth = 2;
+            if (shieldOpacity > 0) {
+                if (shipToDraw.shieldHitTimer > 0) {
+                    DOM.canvasContext.shadowColor = '#fff';
+                    DOM.canvasContext.strokeStyle = `rgba(255,255,255,${shieldOpacity})`;
+                }
+                else {
+                    DOM.canvasContext.shadowColor = `rgb(${r},${g},${b})`;
+                    DOM.canvasContext.strokeStyle = `rgba(${r},${g},${b},${shieldOpacity})`;
+                }
+                DOM.canvasContext.beginPath(); DOM.canvasContext.arc(vpX, vpY, shipToDraw.r + 10, 0, Math.PI * 2); DOM.canvasContext.stroke();
+            }
+        } // End onScreen check
     });
 
     DOM.canvasContext.shadowBlur = 10; DOM.canvasContext.lineCap = 'round'; DOM.canvasContext.lineJoin = 'round'; DOM.canvasContext.globalAlpha = 1;
@@ -2752,7 +2763,6 @@ export function loop() {
 
                             if (planet.hp <= 0) {
                                 planet.r = 0;
-                                planet.targetR = null;
                                 planet.vaporized = true;
                                 planet._destroyed = true;
                                 const pIdx = State.roids.indexOf(planet);
@@ -2933,7 +2943,6 @@ export function loop() {
 
                             if (planet.hp <= 0) {
                                 planet.r = 0;
-                                planet.targetR = null;
                                 planet.vaporized = true;
                                 planet._destroyed = true;
                                 const pIdx = State.roids.indexOf(planet);

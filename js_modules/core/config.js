@@ -2,12 +2,11 @@
 export const ASTEROID_CONFIG = {
    COUNT: 1000,
    INIT_INNER: 5000,
-   INIT_OUTER: 20000,
-   MAX_SIZE: 500,
-   MAX_SPEED: 10,
+   MAX_SIZE: 400,
+   MAX_SPEED: 11,
    MIN_SIZE: 50,
    PLANET_DEBRIS: 25,
-   SPLIT_OFFSET: 300
+   SPLIT_OFFSET: 200
 };
 
 export const BOUNDARY_CONFIG = {
@@ -19,11 +18,11 @@ export const BOUNDARY_CONFIG = {
 export const FPS = 60;
 export const FRICTION = 0.99;
 export const G_CONST = 0.9;
-export const MAX_Z_DEPTH = 2.0;
+export const MAX_Z_DEPTH = 3.0;
 export const MIN_DURATION_TAP_TO_MOVE = 200;
 
 export const GALAXY_CONFIG = {
-   ARMS_LIMIT: 18,
+   ARMS_LIMIT: 16,
    BRIGHTNESS: 0.2,
    LIMIT: 3,
    MIN_DIST: 3000
@@ -31,7 +30,7 @@ export const GALAXY_CONFIG = {
 
 export const PLANET_CONFIG = {
    LIMIT: 3,
-   MAX_SIZE: 2000
+   SIZE: 800 // Twice the size of the largest asteroid
 };
 
 export const PLAYER_CONFIG = {
@@ -42,15 +41,15 @@ export const PLAYER_CONFIG = {
 
 export const SHIP_CONFIG = {
    BASE_MAX_SHIELD: 100,
-   BULLET1_LIFETIME: 90,
-   BULLET2_LIFETIME: 20,
+   BULLET1_LIFETIME: 120,
+   BULLET2_LIFETIME: 40,
    BULLET_FADE_FRAMES: 5,
    BULLET_GRAVITY_FACTOR: 10,
    COMBAT_ORBIT_DISTANCE: 340,
    EVOLUTION_SCORE_STEP: 1000,
    FRIENDLY_BLUE_HUE: 210,
    PLANET_LIMIT: 7,
-   MAX_SPEED: 90,
+   MAX_SPEED: 70,
    RESISTANCE: 2,
    SEPARATION_DISTANCE: 30,
    SIGHT_RANGE: 2000,

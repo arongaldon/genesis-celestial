@@ -1,21 +1,16 @@
 import { ASTEROID_CONFIG, BOUNDARY_CONFIG, GLOBAL_LIGHT, PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FPS, FRICTION, G_CONST, MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE, SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, suffixes, syllables, DOM } from '../core/config.js';
 import { State } from '../core/state.js';
 
-export function drawPlanetTexture(ctx, x, y, r, textureData, worldX = 0, worldY = 0) {
+export function drawPlanetTexture(ctx, x, y, r, textureData) {
     if (!textureData || isNaN(x) || isNaN(y) || isNaN(r)) return;
 
-    // 1. Base ocean gradient (softer, deep)
-    let grad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
-    grad.addColorStop(0, textureData.waterColor);
-    grad.addColorStop(0.8, textureData.innerGradColor);
-    grad.addColorStop(1, textureData.innerGradColor); // Deep edge
-
-    ctx.fillStyle = grad;
+    // 1. Base ocean (Flat color for performance)
+    ctx.fillStyle = textureData.waterColor;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
 
-    // 2. Landmasses (Bezier curves for smoother shorelines)
+    // 2. Landmasses (Simple lines)
     ctx.fillStyle = textureData.landColor;
     textureData.landmasses.forEach(lm => {
         ctx.beginPath();
@@ -23,89 +18,31 @@ export function drawPlanetTexture(ctx, x, y, r, textureData, worldX = 0, worldY 
         const centerX = x + Math.cos(lm.startAngle) * radius * 0.5;
         const centerY = y + Math.sin(lm.startAngle) * radius * 0.5;
 
-        let firstPt = null;
-        for (let j = 0; j < lm.vertices; j++) {
+        for (let j = 0; j < lm.vertices; j += 2) { // Skip vertices for speed
             const angle = (j / lm.vertices) * Math.PI * 2;
             const dist = radius * lm.vertexOffsets[j];
             const px = centerX + Math.cos(angle) * dist;
             const py = centerY + Math.sin(angle) * dist;
-
-            if (j === 0) {
-                firstPt = { x: px, y: py };
-                ctx.moveTo(px, py);
-            } else {
-                // Approximate smooth curve
-                const prevAngle = ((j - 1) / lm.vertices) * Math.PI * 2;
-                const prevDist = radius * lm.vertexOffsets[j - 1];
-                const prevX = centerX + Math.cos(prevAngle) * prevDist;
-                const prevY = centerY + Math.sin(prevAngle) * prevDist;
-
-                const cpX = (prevX + px) / 2;
-                const cpY = (prevY + py) / 2;
-                ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
-            }
+            if (j === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
         }
-        if (firstPt) ctx.quadraticCurveTo(firstPt.x, firstPt.y, firstPt.x, firstPt.y); // close
         ctx.fill();
     });
 
-    // 3. Craters
+    // 3. Craters (Flat circles, no strokes)
     ctx.fillStyle = textureData.craterColor;
-    textureData.craters.forEach(cr => {
+    let craterSkipRate = r > 600 ? 3 : 1;
+
+    for (let c = 0; c < textureData.craters.length; c += craterSkipRate) {
+        let cr = textureData.craters[c];
         const cx = x + cr.xFactor * r;
         const cy = y + cr.yFactor * r;
         const crr = r * cr.rFactor;
+
         if (Math.hypot(cx - x, cy - y) + crr < r) {
             ctx.beginPath(); ctx.arc(cx, cy, crr, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = `rgba(0, 0, 0, 0.4)`; ctx.lineWidth = 1; ctx.stroke();
         }
-    });
-
-    // We establish a dynamic light source direction from GLOBAL_LIGHT outside bounds
-
-    // Calculate light vector based on world coordinates
-    const dx = GLOBAL_LIGHT.X - worldX;
-    const dy = GLOBAL_LIGHT.Y - worldY;
-    const lDist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-    const lightDirX = dx / lDist;
-    const lightDirY = dy / lDist;
-
-    // 6. Atmospheric scattering (Outer Glow)
-    // Smooth radial fade instead of sharp edge
-    const outerAtm = r * 1.25;
-    let atmGrad = ctx.createRadialGradient(x, y, r * 0.95, x, y, outerAtm);
-
-    // Extract hsl to manipulate alpha for the atmosphere
-    const hslBase = textureData.atmosphereColor; // format `hsl(h, s%, l%)`
-    // Convert to hsla string representation for gradient
-    const hslaBase = hslBase.replace(')', ', 0.4)').replace('hsl', 'hsla');
-    const hslaFade = hslBase.replace(')', ', 0)').replace('hsl', 'hsla');
-
-    atmGrad.addColorStop(0, hslaBase);
-    atmGrad.addColorStop(1, hslaFade);
-
-    ctx.fillStyle = atmGrad;
-    ctx.beginPath();
-    ctx.arc(x, y, outerAtm, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 7. Day/Night Shadow Overlay (drawn LAST to darken everything on the night side)
-    // A linear gradient from the dark side to the light side
-    const shadowGrad = ctx.createLinearGradient(
-        x + lightDirX * r, y + lightDirY * r, // Lightest point (closest to sun)
-        x - lightDirX * r, y - lightDirY * r  // Darkest point (furthest from sun)
-    );
-    shadowGrad.addColorStop(0.1, "rgba(0,0,0,0)");    // Extended bright day side
-    shadowGrad.addColorStop(0.5, "rgba(0,0,0,0.6)");  // Harsher terminator line
-    shadowGrad.addColorStop(0.8, "rgba(0,0,0,1.0)");  // Pitch black reaching from the edge
-
-    // Mask the shadow strictly to the planet circle, but let the atmosphere glow remain outside?
-    // Actually, we want the shadow to cover the atmosphere too on the dark side, so we use outerAtm for the mask.
-    ctx.save();
-    ctx.beginPath(); ctx.arc(x, y, outerAtm, 0, Math.PI * 2); ctx.clip();
-    ctx.fillStyle = shadowGrad;
-    ctx.fillRect(x - outerAtm, y - outerAtm, outerAtm * 2, outerAtm * 2);
-    ctx.restore();
+    }
 }
 
 export function drawRadar() {
@@ -172,7 +109,7 @@ export function drawRadar() {
                 DOM.canvasRadarContext.textAlign = 'center';
                 DOM.canvasRadarContext.textBaseline = 'middle';
                 DOM.canvasRadarContext.fillText('O', rx, ry);
-            } else if (type === 'asteroid') {
+            } else if (type === 'asteroid' || type === 'planet' || type === 'background_planet') {
                 DOM.canvasRadarContext.beginPath();
                 DOM.canvasRadarContext.arc(rx, ry, radarSize, 0, Math.PI * 2);
                 DOM.canvasRadarContext.stroke();
@@ -297,9 +234,9 @@ export function updateHUD() {
     }
     if (DOM.hudTop && State.velocity && State.playerShip && !State.playerShip.dead) {
         const spd = Math.sqrt(State.velocity.x ** 2 + State.velocity.y ** 2);
-        // Decrease opacity as speed increases. Min opacity is 0.05 when at max speed.
-        let opacity = 1.0 - (spd / SHIP_CONFIG.MAX_SPEED) * 0.95;
-        opacity = Math.max(0.05, Math.min(1.0, opacity));
+        // Decrease opacity as speed increases. Remain more visible than before.
+        let opacity = 1.0 - (spd / SHIP_CONFIG.MAX_SPEED) * 0.4; // Fade out by at most 40%
+        opacity = Math.max(0.4, Math.min(1.0, opacity)); // Minimum 40% opacity
         DOM.hudTop.style.opacity = opacity.toFixed(2);
     } else if (DOM.hudTop) {
         DOM.hudTop.style.opacity = 1.0;
