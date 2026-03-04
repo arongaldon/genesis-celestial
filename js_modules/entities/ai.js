@@ -24,7 +24,7 @@ export function enemyShoot(e, tx, ty) {
                 if (e.isFriendly && r.id === State.homePlanetId) isFriendlyPlanet = true;
                 if (!e.isFriendly && r.textureData && r.textureData.fleetHue === e.fleetHue) isFriendlyPlanet = true;
 
-                if (isFriendlyPlanet && Math.hypot(r.x - e.x, r.y - e.y) < SAFETY_RADIUS) {
+                if (isFriendlyPlanet && Math.sqrt((r.x - e.x) * (r.x - e.x) + (r.y - e.y) * (r.y - e.y)) < SAFETY_RADIUS) {
                     alliesNear = true;
                     break;
                 }
@@ -39,7 +39,7 @@ export function enemyShoot(e, tx, ty) {
                 if (e.isFriendly && other.isFriendly) isAlly = true;
                 if (!e.isFriendly && !other.isFriendly && e.fleetHue === other.fleetHue) isAlly = true;
 
-                if (isAlly && Math.hypot(other.x - e.x, other.y - e.y) < SAFETY_RADIUS) {
+                if (isAlly && Math.sqrt((other.x - e.x) * (other.x - e.x) + (other.y - e.y) * (other.y - e.y)) < SAFETY_RADIUS) {
                     alliesNear = true;
                     break;
                 }
@@ -66,8 +66,8 @@ export function enemyShoot(e, tx, ty) {
 
     for (let other of State.ships) {
         if (other === e) continue;
-        let distToOther = Math.hypot(other.x - e.x, other.y - e.y); // World distance
-        let distToTarget = Math.hypot(tx - e.x, ty - e.y); // World distance
+        let distToOther = Math.sqrt((other.x - e.x) * (other.x - e.x) + (other.y - e.y) * (other.y - e.y)); // World distance
+        let distToTarget = Math.sqrt((tx - e.x) * (tx - e.x) + (ty - e.y) * (ty - e.y)); // World distance
 
         // If the friend is closer than the target (potential block)
         if (distToOther < distToTarget) {
@@ -91,13 +91,13 @@ export function enemyShoot(e, tx, ty) {
 
 export function isTrajectoryClear(e, targetX, targetY) {
     const trajectoryAngle = Math.atan2(targetY - e.y, targetX - e.x);
-    const distToTarget = Math.hypot(targetX - e.x, targetY - e.y);
+    const distToTarget = Math.sqrt((targetX - e.x) * (targetX - e.x) + (targetY - e.y) * (targetY - e.y));
 
     // Check against player
     if (!State.playerShip.dead) {
         if (e.isFriendly) {
             // Friendlies check if player is in way
-            const distToPlayer = Math.hypot(State.worldOffsetX - e.x, State.worldOffsetY - e.y);
+            const distToPlayer = Math.sqrt((State.worldOffsetX - e.x) * (State.worldOffsetX - e.x) + (State.worldOffsetY - e.y) * (State.worldOffsetY - e.y));
             if (distToPlayer < distToTarget) {
                 const angleToPlayer = Math.atan2(State.worldOffsetY - e.y, State.worldOffsetX - e.x);
                 let diff = Math.abs(trajectoryAngle - angleToPlayer);
@@ -119,7 +119,7 @@ export function isTrajectoryClear(e, targetX, targetY) {
         if (!e.isFriendly && !other.isFriendly && e.fleetHue === other.fleetHue) shouldRespect = true;
 
         if (shouldRespect) {
-            const distToOther = Math.hypot(other.x - e.x, other.y - e.y);
+            const distToOther = Math.sqrt((other.x - e.x) * (other.x - e.x) + (other.y - e.y) * (other.y - e.y));
             if (distToOther < distToTarget) {
                 const angleToOther = Math.atan2(other.y - e.y, other.x - e.x);
                 let diff = Math.abs(trajectoryAngle - angleToOther);
@@ -143,7 +143,7 @@ export function proactiveCombatScanner(e) {
         if (!e.isFriendly && (target.isFriendly || target.fleetHue !== e.fleetHue)) isRival = true;
 
         if (isRival) {
-            const dist = Math.hypot(target.x - e.x, target.y - e.y);
+            const dist = Math.sqrt((target.x - e.x) * (target.x - e.x) + (target.y - e.y) * (target.y - e.y));
             if (dist < 2000) {
                 // Since we mirror rotation, we only shoot if lined up
                 enemyShoot(e, target.x, target.y);
@@ -157,7 +157,7 @@ export function proactiveCombatScanner(e) {
         // FRIENDLY: Scan for Enemy Planets (Friendly Wingmen)
         for (let r of State.roids) {
             if (r.isPlanet && r.z < 0.5 && r.id !== State.homePlanetId && !r._destroyed) {
-                const dist = Math.hypot(r.x - e.x, r.y - e.y);
+                const dist = Math.sqrt((r.x - e.x) * (r.x - e.x) + (r.y - e.y) * (r.y - e.y));
                 if (dist < 2000) {
                     enemyShoot(e, r.x, r.y);
                     if (e.reloadTime > 0) return;
@@ -169,7 +169,7 @@ export function proactiveCombatScanner(e) {
         if (State.homePlanetId) {
             const home = State.roids.find(r => r.id === State.homePlanetId);
             if (home && home.z < 0.5 && !home._destroyed) {
-                const dist = Math.hypot(home.x - e.x, home.y - e.y);
+                const dist = Math.sqrt((home.x - e.x) * (home.x - e.x) + (home.y - e.y) * (home.y - e.y));
                 if (dist < 2500) { // Slightly longer sight range for massive planet
                     enemyShoot(e, home.x, home.y);
                     if (e.reloadTime > 0) return;
@@ -183,11 +183,11 @@ export function proactiveCombatScanner(e) {
     if (e.homeStation) {
         for (let r of State.roids) {
             if (r.z > 0.5 || r.isPlanet) continue;
-            const distToStation = Math.hypot(r.x - e.homeStation.x, r.y - e.homeStation.y);
+            const distToStation = Math.sqrt((r.x - e.homeStation.x) * (r.x - e.homeStation.x) + (r.y - e.homeStation.y) * (r.y - e.homeStation.y));
             const dangerRange = e.homeStation.r * 8.0;
 
             if (distToStation < dangerRange) {
-                const distToShip = Math.hypot(r.x - e.x, r.y - e.y);
+                const distToShip = Math.sqrt((r.x - e.x) * (r.x - e.x) + (r.y - e.y) * (r.y - e.y));
                 if (distToShip < 2000) { // Within firing range
                     enemyShoot(e, r.x, r.y);
                     if (e.reloadTime > 0) return;
@@ -199,7 +199,7 @@ export function proactiveCombatScanner(e) {
     // Generic asteroid clearing
     for (let r of State.roids) {
         if (r.z > 0.5 || r.isPlanet) continue;
-        const dist = Math.hypot(r.x - e.x, r.y - e.y);
+        const dist = Math.sqrt((r.x - e.x) * (r.x - e.x) + (r.y - e.y) * (r.y - e.y));
         if (dist < 1500) {
             enemyShoot(e, r.x, r.y);
             if (e.reloadTime > 0) return;
@@ -208,7 +208,7 @@ export function proactiveCombatScanner(e) {
 
     // 3. SCAN FOR PLAYER (if enemy)
     if (!e.isFriendly && !State.playerShip.dead) {
-        const dist = Math.hypot(State.worldOffsetX - e.x, State.worldOffsetY - e.y);
+        const dist = Math.sqrt((State.worldOffsetX - e.x) * (State.worldOffsetX - e.x) + (State.worldOffsetY - e.y) * (State.worldOffsetY - e.y));
         if (dist < 2000) {
             enemyShoot(e, State.worldOffsetX, State.worldOffsetY);
         }
@@ -233,7 +233,7 @@ export function applyEvasionForces(ship) {
         const isPlanet = r.isPlanet;
         const scanRange = isPlanet ? r.r * 1.5 + 500 : DANGER_SCAN_RANGE;
 
-        const distToObstacle = Math.hypot(r.x - ship.x, r.y - ship.y);
+        const distToObstacle = Math.sqrt((r.x - ship.x) * (r.x - ship.x) + (r.y - ship.y) * (r.y - ship.y));
         if (distToObstacle > scanRange) continue;
 
         // Vector to obstacle
@@ -244,7 +244,7 @@ export function applyEvasionForces(ship) {
         const dotProduct = ship.xv * dirX + ship.yv * dirY;
 
         // If we are relatively still, just push away if too close
-        const speed = Math.hypot(ship.xv, ship.yv);
+        const speed = Math.sqrt((ship.xv) * (ship.xv) + (ship.yv) * (ship.yv));
 
         let dangerScore = 0;
         let forceMag = 0;
@@ -264,17 +264,14 @@ export function applyEvasionForces(ship) {
             // We are moving towards it. Calculate time to collision.
             const relVelX = ship.xv - (r.xv || 0);
             const relVelY = ship.yv - (r.yv || 0);
-            const relSpeed = Math.hypot(relVelX, relVelY);
+            const relSpeed = Math.sqrt((relVelX) * (relVelX) + (relVelY) * (relVelY));
 
             if (relSpeed > 0.1) {
                 const timeToClosest = (dirX * relVelX + dirY * relVelY) / (relSpeed * relSpeed);
 
                 if (timeToClosest > 0 && timeToClosest < 60) {
                     // Project future positions
-                    const closestDist = Math.hypot(
-                        -dirX + relVelX * timeToClosest,
-                        -dirY + relVelY * timeToClosest
-                    );
+                    const closestDist = Math.sqrt((-dirX + relVelX * timeToClosest) * (-dirX + relVelX * timeToClosest) + (-dirY + relVelY * timeToClosest) * (-dirY + relVelY * timeToClosest));
 
                     if (closestDist < safeDist + 100) {
                         // Collision predicted!
@@ -307,7 +304,7 @@ export function applyEvasionForces(ship) {
 
     for (let b of bulletsToEvade) {
         if (!b.active) continue;
-        const distToBullet = Math.hypot(b.x - ship.x, b.y - ship.y);
+        const distToBullet = Math.sqrt((b.x - ship.x) * (b.x - ship.x) + (b.y - ship.y) * (b.y - ship.y));
 
         if (distToBullet < BULLET_EVADE_RANGE) {
             // Relative velocity
@@ -325,7 +322,7 @@ export function applyEvasionForces(ship) {
                 if (t > 0 && t < 30) { // Will hit in next 30 frames
                     const closestX = relVelX * t - vecToShipX;
                     const closestY = relVelY * t - vecToShipY;
-                    const closestDist = Math.hypot(closestX, closestY);
+                    const closestDist = Math.sqrt((closestX) * (closestX) + (closestY) * (closestY));
 
                     if (closestDist < ship.r + 30) {
                         // Perpendicular evasion

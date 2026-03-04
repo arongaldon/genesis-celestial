@@ -104,7 +104,7 @@ export function initializePlanetAttributes(roid, forcedHue = null, forcedName = 
     // Calculate distance from this planet's orbital center
     const dx = roid.x - roid.orbitCenterX;
     const dy = roid.y - roid.orbitCenterY;
-    const distFromCenter = Math.hypot(dx, dy);
+    const distFromCenter = Math.sqrt((dx) * (dx) + (dy) * (dy));
 
     // Semi-major axis (a) - the longest radius of the ellipse
     roid.semiMajorAxis = Math.max(1000, distFromCenter * (0.8 + rng() * 0.4));

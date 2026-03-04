@@ -303,7 +303,7 @@ export function loop() {
         if (State.homePlanetId) {
             const home = State.roids.find(r => r.id === State.homePlanetId);
             if (home) {
-                const d = Math.hypot(home.x - State.worldOffsetX, home.y - State.worldOffsetY);
+                const d = Math.sqrt((home.x - State.worldOffsetX) * (home.x - State.worldOffsetX) + (home.y - State.worldOffsetY) * (home.y - State.worldOffsetY));
                 if (d < lethalRange + home.r) warningNeeded = true;
             }
         }
@@ -312,7 +312,7 @@ export function loop() {
         if (!warningNeeded) {
             for (let s of State.ships) {
                 if (s.isFriendly && s !== State.playerShip) {
-                    const d = Math.hypot(s.x - State.worldOffsetX, s.y - State.worldOffsetY);
+                    const d = Math.sqrt((s.x - State.worldOffsetX) * (s.x - State.worldOffsetX) + (s.y - State.worldOffsetY) * (s.y - State.worldOffsetY));
                     if (d < lethalRange + 100) {
                         warningNeeded = true;
                         break;
@@ -526,7 +526,7 @@ export function loop() {
         const SHADOW_SIZE = 50; // Size of the inset shadow border
 
         // 3. Update Camera / World Offset (with soft magnetic boundary)
-        let nextDist = Math.hypot(State.worldOffsetX + State.velocity.x, State.worldOffsetY + State.velocity.y);
+        let nextDist = Math.sqrt((State.worldOffsetX + State.velocity.x) * (State.worldOffsetX + State.velocity.x) + (State.worldOffsetY + State.velocity.y) * (State.worldOffsetY + State.velocity.y));
         const magneticZone = WORLD_BOUNDS * 0.95; // Start pushing back at 95% of bounds
 
         if (nextDist > magneticZone) {
@@ -562,7 +562,7 @@ export function loop() {
         }
 
         // 4. Visual Boundary Alert (Directional)
-        const currentDist = Math.hypot(State.worldOffsetX, State.worldOffsetY);
+        const currentDist = Math.sqrt((State.worldOffsetX) * (State.worldOffsetX) + (State.worldOffsetY) * (State.worldOffsetY));
         const RED_GLOW = 'rgba(255, 0, 0, 0.7)';
         if (currentDist >= WORLD_BOUNDS - BOUNDARY_CONFIG.TOLERANCE) {
             const angle = Math.atan2(State.worldOffsetY, State.worldOffsetX);
@@ -950,7 +950,7 @@ export function loop() {
 
                     let dx = ship.x - r.x;
                     let dy = ship.y - r.y;
-                    let dist = Math.hypot(dx, dy);
+                    let dist = Math.sqrt((dx) * (dx) + (dy) * (dy));
                     let minDist = ship.r + r.r + 100; // Buffer
 
                     if (dist < minDist && dist > 0) {
@@ -978,7 +978,7 @@ export function loop() {
         ship.y += ship.yv;
 
         // Circular boundary enforcement for ships
-        const distFromCenter = Math.hypot(ship.x, ship.y);
+        const distFromCenter = Math.sqrt((ship.x) * (ship.x) + (ship.y) * (ship.y));
         if (distFromCenter > WORLD_BOUNDS) {
             const angleToCenter = Math.atan2(ship.y, ship.x);
             // Apply a correction force back towards the center
@@ -1076,7 +1076,7 @@ export function loop() {
         let potentialThreats = spatialGrid.query(ship);
         for (let r of potentialThreats) {
             if (r.z > 0.5) continue;
-            let d = Math.hypot(ship.x - r.x, ship.y - r.y);
+            let d = Math.sqrt((ship.x - r.x) * (ship.x - r.x) + (ship.y - r.y) * (ship.y - r.y));
             if (d < 300 && d < minThreatDist && d > ship.r + r.r) {
                 threat = r;
                 minThreatDist = d;
@@ -1099,7 +1099,7 @@ export function loop() {
                 let targets = spatialGrid.query(ship);
                 for (let r of targets) {
                     if (r.z > 0.5 || r.isPlanet) continue;
-                    const distToRoid = Math.hypot(r.x - ship.x, r.y - ship.y);
+                    const distToRoid = Math.sqrt((r.x - ship.x) * (r.x - ship.x) + (r.y - ship.y) * (r.y - ship.y));
                     if (distToRoid < 1500) {
                         enemyShoot(ship, r.x, r.y);
                         if (ship.reloadTime > 0) break;
@@ -1108,7 +1108,7 @@ export function loop() {
             }
         } else {
             // --- ADVANCED SHIP AI ---
-            const distToPlayer = Math.hypot(State.worldOffsetX - ship.x, State.worldOffsetY - ship.y);
+            const distToPlayer = Math.sqrt((State.worldOffsetX - ship.x) * (State.worldOffsetX - ship.x) + (State.worldOffsetY - ship.y) * (State.worldOffsetY - ship.y));
             const tier = Math.floor((ship.score || 0) / SHIP_CONFIG.EVOLUTION_SCORE_STEP);
 
             // 1. STATE TRANSITION
@@ -1149,7 +1149,7 @@ export function loop() {
                     if (State.homePlanetId && homeAttackWarningTimer === 0) {
                         const home = State.roids.find(r => r.id === State.homePlanetId);
                         // User Request: Only valid if home planet is at default z (< 0.5)
-                        if (home && home.z < 0.5 && Math.hypot(ship.x - home.x, ship.y - home.y) < 3000) {
+                        if (home && home.z < 0.5 && Math.sqrt((ship.x - home.x) * (ship.x - home.x) + (ship.y - home.y) * (ship.y - home.y)) < 3000) {
                             addScreenMessage(t("game.warn_home_attack"), "#ff0000"); // Red warning
                             homeAttackWarningTimer = 600; // Warn every 10 seconds (assuming 60 FPS)
                             warnedHome = true;
@@ -1160,7 +1160,7 @@ export function loop() {
                     if (!warnedHome && stationAttackWarningTimer === 0) {
                         for (let other of State.ships) {
                             if (other.isFriendly && other.type === 'station') {
-                                if (Math.hypot(ship.x - other.x, ship.y - other.y) < 3000) {
+                                if (Math.sqrt((ship.x - other.x) * (ship.x - other.x) + (ship.y - other.y) * (ship.y - other.y)) < 3000) {
                                     addScreenMessage(t("game.warn_station_attack"), "#ff8800"); // Orange warning
                                     stationAttackWarningTimer = 600; // 10 seconds
                                     break;
@@ -1184,7 +1184,7 @@ export function loop() {
                 }
 
                 // If close to safe zone target, pick a new one
-                const distToSafeZone = Math.hypot(ship.safeZoneTarget.x - ship.x, ship.safeZoneTarget.y - ship.y);
+                const distToSafeZone = Math.sqrt((ship.safeZoneTarget.x - ship.x) * (ship.safeZoneTarget.x - ship.x) + (ship.safeZoneTarget.y - ship.y) * (ship.safeZoneTarget.y - ship.y));
                 if (distToSafeZone < 500) {
                     const angle = Math.random() * Math.PI * 2;
                     const r = WORLD_BOUNDS * 0.8 + Math.random() * (WORLD_BOUNDS * 0.1);
@@ -1202,7 +1202,7 @@ export function loop() {
                 if (!ship.isFriendly && State.homePlanetId) {
                     const home = State.roids.find(r => r.id === State.homePlanetId);
                     if (home && home.z < 0.5 && !home._destroyed) {
-                        let d = Math.hypot(home.x - ship.x, home.y - ship.y);
+                        let d = Math.sqrt((home.x - ship.x) * (home.x - ship.x) + (home.y - ship.y) * (home.y - ship.y));
                         if (d < 5000) { // Will break patrol to swarm the planet
                             huntTarget = home;
                             minThreatDist = d;
@@ -1215,7 +1215,7 @@ export function loop() {
                     let gridThreats = spatialGrid.query(ship);
                     for (let r of gridThreats) {
                         if (r.z > 0.5 || r.isPlanet) continue;
-                        let d = Math.hypot(ship.x - r.x, ship.y - r.y);
+                        let d = Math.sqrt((ship.x - r.x) * (ship.x - r.x) + (ship.y - r.y) * (ship.y - r.y));
                         if (d < 1500 && d < minThreatDist) {
                             huntTarget = r;
                             minThreatDist = d;
@@ -1231,12 +1231,12 @@ export function loop() {
                         if (!ship.isFriendly && (other.isFriendly || other.fleetHue !== ship.fleetHue)) isRival = true;
 
                         if (isRival) {
-                            let d = Math.hypot(other.x - ship.x, other.y - ship.y);
+                            let d = Math.sqrt((other.x - ship.x) * (other.x - ship.x) + (other.y - ship.y) * (other.y - ship.y));
                             if (d < 2000 && d < minThreatDist) { huntTarget = other; minThreatDist = d; }
                         }
                     }
                     if (!ship.isFriendly && !State.playerShip.dead) {
-                        let d = Math.hypot(State.worldOffsetX - ship.x, State.worldOffsetY - ship.y);
+                        let d = Math.sqrt((State.worldOffsetX - ship.x) * (State.worldOffsetX - ship.x) + (State.worldOffsetY - ship.y) * (State.worldOffsetY - ship.y));
                         if (d < 2000 && d < minThreatDist) { huntTarget = { x: State.worldOffsetX, y: State.worldOffsetY }; minThreatDist = d; }
                     }
                 }
@@ -1247,9 +1247,9 @@ export function loop() {
                     if (home) {
                         for (let other of State.ships) {
                             if (!other.isFriendly && other.type !== 'station') {
-                                let distToHome = Math.hypot(other.x - home.x, other.y - home.y);
+                                let distToHome = Math.sqrt((other.x - home.x) * (other.x - home.x) + (other.y - home.y) * (other.y - home.y));
                                 if (distToHome < 3000) { // Intercept radius
-                                    let distToRival = Math.hypot(other.x - ship.x, other.y - ship.y);
+                                    let distToRival = Math.sqrt((other.x - ship.x) * (other.x - ship.x) + (other.y - ship.y) * (other.y - ship.y));
                                     if (distToRival < minThreatDist) {
                                         huntTarget = other; minThreatDist = distToRival;
                                     }
@@ -1282,7 +1282,7 @@ export function loop() {
                     if (home) {
                         const dx = home.x - ship.x;
                         const dy = home.y - ship.y;
-                        const dist = Math.hypot(dx, dy);
+                        const dist = Math.sqrt((dx) * (dx) + (dy) * (dy));
                         const ORBIT_RADIUS = home.r * 1.5 + ship.r;
 
                         if (dist > ORBIT_RADIUS + 100) {
@@ -1312,9 +1312,9 @@ export function loop() {
                             let minThreatDist = Infinity;
                             for (let r of State.roids) {
                                 if (r.z > 0.5 || r.isPlanet) continue;
-                                const distToStation = Math.hypot(r.x - home.x, r.y - home.y);
+                                const distToStation = Math.sqrt((r.x - home.x) * (r.x - home.x) + (r.y - home.y) * (r.y - home.y));
                                 if (distToStation < home.r * 8.0) {
-                                    const distToShip = Math.hypot(r.x - ship.x, r.y - ship.y);
+                                    const distToShip = Math.sqrt((r.x - ship.x) * (r.x - ship.x) + (r.y - ship.y) * (r.y - ship.y));
                                     if (distToShip < minThreatDist && distToShip < 2000) {
                                         nearestThreat = r;
                                         minThreatDist = distToShip;
@@ -1324,9 +1324,9 @@ export function loop() {
                             for (let target of State.ships) {
                                 if (target === ship || target.type === 'station') continue;
                                 if (ship.isFriendly && !target.isFriendly) {
-                                    const distToStation = Math.hypot(target.x - home.x, target.y - home.y);
+                                    const distToStation = Math.sqrt((target.x - home.x) * (target.x - home.x) + (target.y - home.y) * (target.y - home.y));
                                     if (distToStation < home.r * 8.0) {
-                                        const distToShip = Math.hypot(target.x - ship.x, target.y - ship.y);
+                                        const distToShip = Math.sqrt((target.x - ship.x) * (target.x - ship.x) + (target.y - ship.y) * (target.y - ship.y));
                                         if (distToShip < minThreatDist && distToShip < 2000) {
                                             nearestThreat = target;
                                             minThreatDist = distToShip;
@@ -1369,7 +1369,7 @@ export function loop() {
 
                     const dx = targetX - ship.x;
                     const dy = targetY - ship.y;
-                    const distToTarget = Math.hypot(dx, dy);
+                    const distToTarget = Math.sqrt((dx) * (dx) + (dy) * (dy));
 
                     // Check if strictly in visual slot
                     const isInVisualSlot = distToTarget < 40;
@@ -1386,7 +1386,7 @@ export function loop() {
                     let nearbyObs = spatialGrid.query(ship);
                     for (let r of nearbyObs) {
                         if (r.z > 0.5 || r.isPlanet) continue;
-                        let d = Math.hypot(ship.x - r.x, ship.y - r.y);
+                        let d = Math.sqrt((ship.x - r.x) * (ship.x - r.x) + (ship.y - r.y) * (ship.y - r.y));
                         if (d < r.r + ship.r + safetyDist) {
                             obstacle = r; break;
                         }
@@ -1395,7 +1395,7 @@ export function loop() {
                     if (!obstacle) {
                         for (let other of State.ships) {
                             if (other === ship || (other.isFriendly && other.type !== 'station')) continue;
-                            let d = Math.hypot(ship.x - other.x, ship.y - other.y);
+                            let d = Math.sqrt((ship.x - other.x) * (ship.x - other.x) + (ship.y - other.y) * (ship.y - other.y));
                             if (d < other.r + ship.r + safetyDist) {
                                 obstacle = other; break;
                             }
@@ -1458,7 +1458,7 @@ export function loop() {
                     }
 
                     // Damping and Speed Cap (IMPORTANT for stability)
-                    const speed = Math.hypot(ship.xv, ship.yv);
+                    const speed = Math.sqrt((ship.xv) * (ship.xv) + (ship.yv) * (ship.yv));
                     const maxFormationSpeed = 25;
                     if (speed > maxFormationSpeed) {
                         ship.xv = (ship.xv / speed) * maxFormationSpeed;
@@ -1505,7 +1505,7 @@ export function loop() {
                         let stationHazards = spatialGrid.query(ship.homeStation);
                         for (let r of stationHazards) {
                             if (r.z > 0.5 || r.isPlanet) continue;
-                            const distToHome = Math.hypot(r.x - ship.homeStation.x, r.y - ship.homeStation.y);
+                            const distToHome = Math.sqrt((r.x - ship.homeStation.x) * (r.x - ship.homeStation.x) + (r.y - ship.homeStation.y) * (r.y - ship.homeStation.y));
 
                             // If asteroid is dangerously close to home station (within 2500 units)
                             if (distToHome < 2500) {
@@ -1531,7 +1531,7 @@ export function loop() {
                         }
 
                         // Check if we reached the patrol target
-                        const distToPatrol = Math.hypot(ship.x - ship.patrolTarget.x, ship.y - ship.patrolTarget.y);
+                        const distToPatrol = Math.sqrt((ship.x - ship.patrolTarget.x) * (ship.x - ship.patrolTarget.x) + (ship.y - ship.patrolTarget.y) * (ship.y - ship.patrolTarget.y));
                         if (distToPatrol < 500) {
                             // Pick a new target
                             if (Math.random() < 0.5) {
@@ -1572,7 +1572,7 @@ export function loop() {
                     ship.yv += Math.sin(ship.a) * 0.5;
 
                     // Cap speed
-                    const speed = Math.hypot(ship.xv, ship.yv);
+                    const speed = Math.sqrt((ship.xv) * (ship.xv) + (ship.yv) * (ship.yv));
                     if (speed > CRUISE_SPEED) {
                         ship.xv = (ship.xv / speed) * CRUISE_SPEED;
                         ship.yv = (ship.yv / speed) * CRUISE_SPEED;
@@ -1599,7 +1599,7 @@ export function loop() {
                         // Spring Force to Target
                         const dx = targetX - ship.x;
                         const dy = targetY - ship.y;
-                        const distToTarget = Math.hypot(dx, dy);
+                        const distToTarget = Math.sqrt((dx) * (dx) + (dy) * (dy));
 
                         const isInVisualSlot = distToTarget < 50;
 
@@ -1627,7 +1627,7 @@ export function loop() {
                         ship.yv += dy * force;
 
                         // Physical separation from leader
-                        const distToLeader = Math.hypot(ship.x - lx, ship.y - ly);
+                        const distToLeader = Math.sqrt((ship.x - lx) * (ship.x - lx) + (ship.y - ly) * (ship.y - ly));
                         const minSafeDist = ship.r + (ship.leaderRef.r || 30) + 10;
                         if (distToLeader < minSafeDist) {
                             const ang = Math.atan2(ship.y - ly, ship.x - lx);
@@ -1716,7 +1716,7 @@ export function loop() {
                             for (let other of State.ships) {
                                 if (other.dead || other === ship || other.type !== 'ship') continue;
                                 if (other.fleetHue === ship.fleetHue && !other.isFriendly) {
-                                    const dist = Math.hypot(other.x - ship.x, other.y - ship.y);
+                                    const dist = Math.sqrt((other.x - ship.x) * (other.x - ship.x) + (other.y - ship.y) * (other.y - ship.y));
                                     if (dist < NPC_JOIN_RANGE) {
                                         if (other.role === 'leader' && other.squadSlots) {
                                             const openSlot = other.squadSlots.find(s => !s.occupant || s.occupant.dead || !State.ships.includes(s.occupant));
@@ -1766,7 +1766,7 @@ export function loop() {
                                 }
                             }
 
-                            const distToCenter = Math.hypot(ship.x - patrolCenter.x, ship.y - patrolCenter.y);
+                            const distToCenter = Math.sqrt((ship.x - patrolCenter.x) * (ship.x - patrolCenter.x) + (ship.y - patrolCenter.y) * (ship.y - patrolCenter.y));
                             const ORBIT_RADIUS = baseRadius > 0 ? (baseRadius * 1.8 + ship.r) : 300;
 
                             if (distToCenter > ORBIT_RADIUS + 100) {
@@ -1820,7 +1820,7 @@ export function loop() {
                     }
 
                     if (isRival && (other.type === 'ship' || other.type === 'station')) {
-                        let d = Math.hypot(other.x - ship.x, other.y - ship.y);
+                        let d = Math.sqrt((other.x - ship.x) * (other.x - ship.x) + (other.y - ship.y) * (other.y - ship.y));
 
                         if (d < 3000) { // Max aggro range
                             // Tweak threat score heuristics
@@ -1894,7 +1894,7 @@ export function loop() {
                 for (let other of State.ships) {
                     if (other === ship || other.type !== 'ship') continue;
                     // Simple distance check
-                    let distToOther = Math.hypot(ship.x - other.x, ship.y - other.y);
+                    let distToOther = Math.sqrt((ship.x - other.x) * (ship.x - other.x) + (ship.y - other.y) * (ship.y - other.y));
                     if (distToOther < SHIP_CONFIG.SEPARATION_DISTANCE) {
                         // Push away relative to other
                         let ang = Math.atan2(ship.y - other.y, ship.x - other.x);
@@ -1915,7 +1915,7 @@ export function loop() {
                 ship.xv *= 0.96;
                 ship.yv *= 0.96;
 
-                let currentSpeed = Math.hypot(ship.xv, ship.yv);
+                let currentSpeed = Math.sqrt((ship.xv) * (ship.xv) + (ship.yv) * (ship.yv));
                 if (currentSpeed > (ship.tier >= 12 ? SHIP_CONFIG.MAX_SPEED * 2 : SHIP_CONFIG.MAX_SPEED)) {
                     let scale = (ship.tier >= 12 ? SHIP_CONFIG.MAX_SPEED * 2 : SHIP_CONFIG.MAX_SPEED) / currentSpeed;
                     ship.xv *= scale;
@@ -1934,7 +1934,7 @@ export function loop() {
                     let combatThreats = spatialGrid.query(ship);
                     for (let r of combatThreats) {
                         if (r.z > 0.5 || r.isPlanet) continue;
-                        const distToRoid = Math.hypot(r.x - ship.x, r.y - ship.y);
+                        const distToRoid = Math.sqrt((r.x - ship.x) * (r.x - ship.x) + (r.y - ship.y) * (r.y - ship.y));
                         if (distToRoid < 1000) {
                             const roidAngle = Math.atan2(r.y - ship.y, r.x - ship.x);
                             let roidAngleDiff = roidAngle - ship.a;
@@ -1959,7 +1959,7 @@ export function loop() {
 
         // Collisions
         if (!State.playerShip.dead && (!ship.z || ship.z < 0.5)) {
-            let distToPlayer = Math.hypot(State.worldOffsetX - ship.x, State.worldOffsetY - ship.y);
+            let distToPlayer = Math.sqrt((State.worldOffsetX - ship.x) * (State.worldOffsetX - ship.x) + (State.worldOffsetY - ship.y) * (State.worldOffsetY - ship.y));
             let collisionThreshold = (State.playerShip.effectiveR || State.playerShip.r) + ship.r + 10;
             if (distToPlayer < collisionThreshold) {
                 if (ship.isFriendly) {
@@ -2205,7 +2205,7 @@ export function loop() {
 
         // Check collision with player (World Coords)
         if (r.z < 0.5 && !State.playerShip.dead) {
-            let distToPlayer = Math.hypot(r.x - State.worldOffsetX, r.y - State.worldOffsetY);
+            let distToPlayer = Math.sqrt((r.x - State.worldOffsetX) * (r.x - State.worldOffsetX) + (r.y - State.worldOffsetY) * (r.y - State.worldOffsetY));
             if (distToPlayer < (State.playerShip.effectiveR || State.playerShip.r) + r.r * depthScale) {
 
                 const isNearPlanetCollision = r.isPlanet && r.z < 0.5;
@@ -2283,7 +2283,7 @@ export function loop() {
             // Proximity fading for friends
             let alpha = depthAlpha;
             if (shipToDraw.isFriendly) {
-                const distToPlayer = Math.hypot(State.worldOffsetX - shipToDraw.x, State.worldOffsetY - shipToDraw.y);
+                const distToPlayer = Math.sqrt((State.worldOffsetX - shipToDraw.x) * (State.worldOffsetX - shipToDraw.x) + (State.worldOffsetY - shipToDraw.y) * (State.worldOffsetY - shipToDraw.y));
                 const fadeStart = 300;
                 const fadeEnd = 50;
                 if (distToPlayer < fadeStart) {
@@ -2651,7 +2651,7 @@ export function loop() {
         enemyShipBullet.x += enemyShipBullet.xv; enemyShipBullet.y += enemyShipBullet.yv;
         enemyShipBullet.life--;
 
-        if (enemyShipBullet.life <= 0 || Math.hypot(State.worldOffsetX - enemyShipBullet.x, State.worldOffsetY - enemyShipBullet.y) > WORLD_BOUNDS * 1.5) {
+        if (enemyShipBullet.life <= 0 || Math.sqrt((State.worldOffsetX - enemyShipBullet.x) * (State.worldOffsetX - enemyShipBullet.x) + (State.worldOffsetY - enemyShipBullet.y) * (State.worldOffsetY - enemyShipBullet.y)) > WORLD_BOUNDS * 1.5) {
             State.enemyShipBullets.splice(i, 1); continue;
         }
 
@@ -2674,7 +2674,7 @@ export function loop() {
 
         let hit = false;
         // Collision with player (World Coords)
-        if (!State.playerShip.dead && !enemyShipBullet.isFriendly && Math.hypot(State.worldOffsetX - enemyShipBullet.x, State.worldOffsetY - enemyShipBullet.y) < (State.playerShip.effectiveR || State.playerShip.r) + 5) {
+        if (!State.playerShip.dead && !enemyShipBullet.isFriendly && Math.sqrt((State.worldOffsetX - enemyShipBullet.x) * (State.worldOffsetX - enemyShipBullet.x) + (State.worldOffsetY - enemyShipBullet.y) * (State.worldOffsetY - enemyShipBullet.y)) < (State.playerShip.effectiveR || State.playerShip.r) + 5) {
             hitPlayerShip(1);
 
             // INDIVIDUAL EVOLUTION: Gain score for hitting/killing player
@@ -2862,7 +2862,7 @@ export function loop() {
         playerShipBullet.x += playerShipBullet.xv; playerShipBullet.y += playerShipBullet.yv;
         playerShipBullet.life--;
 
-        if (playerShipBullet.life <= 0 || Math.hypot(State.worldOffsetX - playerShipBullet.x, State.worldOffsetY - playerShipBullet.y) > WORLD_BOUNDS * 1.5) {
+        if (playerShipBullet.life <= 0 || Math.sqrt((State.worldOffsetX - playerShipBullet.x) * (State.worldOffsetX - playerShipBullet.x) + (State.worldOffsetY - playerShipBullet.y) * (State.worldOffsetY - playerShipBullet.y)) > WORLD_BOUNDS * 1.5) {
             State.playerShipBullets.splice(i, 1); continue;
         }
 
@@ -3166,7 +3166,7 @@ export function loop() {
 
             // Check if enemy is off-screen but within detection range
             const isOffScreen = vpX < screenLeft || vpX > screenRight || vpY < screenTop || vpY > screenBottom;
-            const distToPlayer = Math.hypot(e.x - State.worldOffsetX, e.y - State.worldOffsetY);
+            const distToPlayer = Math.sqrt((e.x - State.worldOffsetX) * (e.x - State.worldOffsetX) + (e.y - State.worldOffsetY) * (e.y - State.worldOffsetY));
 
             if (isOffScreen && distToPlayer < DETECTION_RANGE) {
                 // Calculate indicator position at screen border

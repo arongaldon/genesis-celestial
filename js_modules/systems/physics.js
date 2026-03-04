@@ -56,7 +56,7 @@ export function updatePhysics() {
             }
             if (r1.isBubbleDebris) {
                 r1.xv *= r1.bubbleFriction; r1.yv *= r1.bubbleFriction;
-                if (Math.hypot(r1.xv, r1.yv) < 0.1) r1.isBubbleDebris = false;
+                if ((r1.xv * r1.xv + r1.yv * r1.yv) < 0.01) r1.isBubbleDebris = false;
             }
             if (r1.semiMajorAxis && r1.orbitSpeed) {
                 const zSpeedModifier = 1 / (1 + r1.z);
@@ -148,12 +148,13 @@ export function updatePhysics() {
         }
 
         // --- 5. Speed Limit & Boundary ---
-        const speed = Math.hypot(r1.xv, r1.yv);
+        const speedSq = r1.xv * r1.xv + r1.yv * r1.yv;
+        const speed = Math.sqrt(speedSq);
         if (speed > ASTEROID_CONFIG.MAX_SPEED) {
             const ratio = ASTEROID_CONFIG.MAX_SPEED / speed;
             r1.xv *= ratio; r1.yv *= ratio;
         }
-        const distToCenter = Math.hypot(r1.x, r1.y);
+        const distToCenter = Math.sqrt(r1.x * r1.x + r1.y * r1.y);
         if (r1.isPlanet && r1.semiMajorAxis) {
             // Let planets drift further but slowly pull their entire orbit center inwards
             if (distToCenter > WORLD_BOUNDS + 2000) {

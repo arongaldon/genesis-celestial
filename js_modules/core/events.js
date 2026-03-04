@@ -85,10 +85,7 @@ export function setupInputEvents() {
         } else if (e.touches.length === 2) {
             // Prepare for pinch zoom
             wasPinching = true;
-            initialPinchDistance = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
-            );
+            initialPinchDistance = Math.sqrt((e.touches[0].clientX - e.touches[1].clientX) * (e.touches[0].clientX - e.touches[1].clientX) + (e.touches[0].clientY - e.touches[1].clientY) * (e.touches[0].clientY - e.touches[1].clientY));
         }
 
         e.preventDefault();
@@ -111,7 +108,7 @@ export function setupInputEvents() {
             const dy = currentY - touchStartY;
 
             // Deadzone to prevent jitter
-            if (Math.hypot(dx, dy) > 10) {
+            if (Math.sqrt((dx) * (dx) + (dy) * (dy)) > 10) {
                 // Steer towards the drag vector
                 // Note: dy is screen coordinates (down is positive).
                 let targetAngle = Math.atan2(dy, dx);
@@ -132,10 +129,7 @@ export function setupInputEvents() {
                 while (State.playerShip.a <= -Math.PI) State.playerShip.a += 2 * Math.PI;
             }
         } else if (e.touches.length === 2) {
-            const currentDistance = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
-            );
+            const currentDistance = Math.sqrt((e.touches[0].clientX - e.touches[1].clientX) * (e.touches[0].clientX - e.touches[1].clientX) + (e.touches[0].clientY - e.touches[1].clientY) * (e.touches[0].clientY - e.touches[1].clientY));
             const diff = currentDistance - initialPinchDistance;
 
             // Sensivity threshold for zoom change

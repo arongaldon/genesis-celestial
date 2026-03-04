@@ -39,7 +39,8 @@ export function drawPlanetTexture(ctx, x, y, r, textureData) {
         const cy = y + cr.yFactor * r;
         const crr = r * cr.rFactor;
 
-        if (Math.hypot(cx - x, cy - y) + crr < r) {
+        const dx = cx - x; const dy = cy - y;
+        if (Math.sqrt(dx * dx + dy * dy) + crr < r) {
             ctx.beginPath(); ctx.arc(cx, cy, crr, 0, Math.PI * 2); ctx.fill();
         }
     }

@@ -35,8 +35,8 @@ export const PLANET_CONFIG = {
 
 export const PLAYER_CONFIG = {
    INITIAL_LIVES: 3,
-   RELOAD_TIME_MAX: 6,
-   RELOAD_TIME_MS: 100 // ~6 frames at 60fps
+   RELOAD_TIME_MAX: 12,
+   RELOAD_TIME_MS: 200 // ~12 frames at 60fps
 };
 
 export const SHIP_CONFIG = {
@@ -74,14 +74,14 @@ export const STATION_CONFIG = {
    RESISTANCE: 6
 };
 
-export const WORLD_BOUNDS = 20000;
+export const WORLD_BOUNDS = 13000;
 
 export const GLOBAL_LIGHT = {
    X: WORLD_BOUNDS * 2, // Distant sun far out of bounds
    Y: -WORLD_BOUNDS * 2
 };
 
-export const ZOOM_LEVELS = Array.from({ length: 12 }, (_, i) => 1000 + (i * 200) + (i * i * 100));
+export const ZOOM_LEVELS = Array.from({ length: 10 }, (_, i) => 1000 + (i * 200) + (i * i * 100));
 
 export const suffixes = ["PRIME", "IV", "X", "ALPHA", "BETA", "MAJOR", "MINOR", "ZERO", "AEON"];
 export const syllables = ["KRON", "XER", "ZAN", "TOR", "AER", "ION", "ULA", "PROX", "VEX", "NOV", "SOL", "LUNA", "TER", "MAR", "JUP"];
