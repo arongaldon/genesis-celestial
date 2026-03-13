@@ -53,6 +53,10 @@ body {
     cursor: crosshair;
 }
 
+body.keyboard-mode {
+    cursor: none;
+}
+
 canvas {
     display: block;
 }

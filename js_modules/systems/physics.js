@@ -1,6 +1,6 @@
 import { State } from '../core/state.js';
 import { SpatialHash } from '../utils/utils.js';
-import { ASTEROID_CONFIG, BOUNDARY_CONFIG, PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FPS, FRICTION, G_CONST, MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE, SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, suffixes, syllables, DOM } from '../core/config.js';
+import { ASTEROID_CONFIG, BOUNDARY_CONFIG, PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FPS, FRICTION, G_CONST, MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE, SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, DOM } from '../core/config.js';
 import { createAsteroid, initializePlanetAttributes, spawnStation } from '../entities/entities.js';
 import { createExplosion, createExplosionDebris, createShockwave } from '../graphics/fx.js';
 import { AudioEngine } from '../audio/audio.js';
@@ -72,9 +72,6 @@ export function updatePhysics() {
                 r1.orbitAngle = nextAngle;
             }
         }
-
-        // Unset destroyed flag for safety
-        r1._destroyed = false;
 
         if (r1.blinkNum > 0) r1.blinkNum--;
 
@@ -305,11 +302,8 @@ export function resolveInteraction(r1, r2) {
             if (State.gameRunning) {
                 console.log("Count: " + (planetsBefore - 2) + ". Planets " + r1.name + " and " + r2.name + " destroyed.");
             }
-            PLANET_CONFIG.LIMIT = Math.max(0, PLANET_CONFIG.LIMIT - 2);
             r1.r = 0; r1.vaporized = true; r1._destroyed = true;
             r2.r = 0; r2.vaporized = true; r2._destroyed = true;
-            const idx1 = State.roids.indexOf(r1); if (idx1 !== -1) State.roids.splice(idx1, 1);
-            const idx2 = State.roids.indexOf(r2); if (idx2 !== -1) State.roids.splice(idx2, 1);
             return;
         }
 
@@ -350,11 +344,25 @@ export function resolveInteraction(r1, r2) {
             if (!r1.isPlanet) {
                 const currentPlanets = State.roids.filter(r => r.isPlanet && !r._destroyed).length;
                 if (currentPlanets < PLANET_CONFIG.LIMIT) {
-                    r1.r = PLANET_CONFIG.SIZE;
-                    initializePlanetAttributes(r1);
-                    r1.mass = totalMass * 0.05;
-                    createExplosion(midVpX, midVpY, 60, '#00ffff', 10, 'spark');
-                    AudioEngine.playPlanetExplosion(midX, midY, r1.z);
+                    // SAFETY CHECK: Ensure no other planet is too close before expanding to full planet size
+                    let tooClose = false;
+                    for (let p of State.roids) {
+                        if (p.isPlanet && !p._destroyed) {
+                            const distToP = Math.sqrt((p.x - r1.x) ** 2 + (p.y - r1.y) ** 2);
+                            if (distToP < PLANET_CONFIG.SIZE * 2.5) { tooClose = true; break; }
+                        }
+                    }
+
+                    if (!tooClose) {
+                        r1.r = PLANET_CONFIG.SIZE;
+                        initializePlanetAttributes(r1);
+                        r1.mass = totalMass * 0.05;
+                        r1.blinkNum = 60; // Brief ghosting to prevent immediate physics jitter
+                        createExplosion(midVpX, midVpY, 60, '#00ffff', 10, 'spark');
+                        AudioEngine.playPlanetExplosion(midX, midY, r1.z);
+                    } else {
+                        r1.r = newR;
+                    }
                 } else { r1.r = newR; }
             } else { r1.r = Math.min(newR, PLANET_CONFIG.SIZE); r1.mass = totalMass * 0.05; }
             r2._destroyed = true;
@@ -366,19 +374,30 @@ export function resolveInteraction(r1, r2) {
                 AudioEngine.playSoftThud(midX, midY, giant.z);
                 smaller._destroyed = true;
             } else {
-                [r1, r2].forEach((r) => {
-                    const newSize = r.r * 0.5;
-                    if (newSize >= ASTEROID_CONFIG.MIN_SIZE) {
-                        const off = r.r * (ASTEROID_CONFIG.SPLIT_OFFSET / ASTEROID_CONFIG.MAX_SIZE);
-                        const ang = Math.random() * Math.PI * 2;
-                        let f1 = createAsteroid(r.x + Math.cos(ang) * off, r.y + Math.sin(ang) * off, newSize);
-                        f1.xv = r.xv + Math.cos(ang) * ASTEROID_CONFIG.MAX_SPEED; f1.yv = r.yv + Math.sin(ang) * ASTEROID_CONFIG.MAX_SPEED; f1.blinkNum = 30;
-                        State.roids.push(f1);
-                        let f2 = createAsteroid(r.x - Math.cos(ang) * off, r.y - Math.sin(ang) * off, newSize);
-                        f2.xv = r.xv - Math.cos(ang) * ASTEROID_CONFIG.MAX_SPEED; f2.yv = r.yv - Math.sin(ang) * ASTEROID_CONFIG.MAX_SPEED; f2.blinkNum = 30;
-                        State.roids.push(f2);
-                    }
-                });
+                // If we are already at or near the limit, don't split, just destroy the smaller one and let the giant lose some mass
+                if (State.roids.length >= ASTEROID_CONFIG.MAX_ROIDS) {
+                    smaller._destroyed = true;
+                    giant.r *= 0.95;
+                    return;
+                }
+
+                const newSize = giant.r * 0.5;
+                if (newSize >= ASTEROID_CONFIG.MIN_SIZE) {
+                    const off = giant.r * (ASTEROID_CONFIG.SPLIT_OFFSET / ASTEROID_CONFIG.MAX_SIZE);
+                    const ang = Math.random() * Math.PI * 2;
+                    let f1 = createAsteroid(giant.x + Math.cos(ang) * off, giant.y + Math.sin(ang) * off, newSize);
+                    f1.xv = giant.xv + Math.cos(ang) * ASTEROID_CONFIG.MAX_SPEED; 
+                    f1.yv = giant.yv + Math.sin(ang) * ASTEROID_CONFIG.MAX_SPEED; 
+                    f1.blinkNum = 60; // Longer ghosting
+                    State.roids.push(f1);
+
+                    let f2 = createAsteroid(giant.x - Math.cos(ang) * off, giant.y - Math.sin(ang) * off, newSize);
+                    f2.xv = giant.xv - Math.cos(ang) * ASTEROID_CONFIG.MAX_SPEED; 
+                    f2.yv = giant.yv - Math.sin(ang) * ASTEROID_CONFIG.MAX_SPEED; 
+                    f2.blinkNum = 60;
+                    State.roids.push(f2);
+                }
+                
                 createExplosion(midVpX, midVpY, 40, '#ffaa00', 3, 'spark');
                 AudioEngine.playExplosion('small', midX, midY, r1.z);
                 r1._destroyed = true; r2._destroyed = true;

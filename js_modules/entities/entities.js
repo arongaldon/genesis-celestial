@@ -1,4 +1,4 @@
-import { ASTEROID_CONFIG, BOUNDARY_CONFIG, GALAXY_CONFIG, PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FPS, FRICTION, G_CONST, MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE, SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, suffixes, syllables, DOM } from '../core/config.js';
+import { ASTEROID_CONFIG, BOUNDARY_CONFIG, GALAXY_CONFIG, PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FPS, FRICTION, G_CONST, MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE, SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, DOM } from '../core/config.js';
 import { State } from '../core/state.js';
 import { mulberry32, getShapeName } from '../utils/utils.js';
 import { addScreenMessage, updateAsteroidCounter, drawLives } from '../graphics/render.js';
@@ -68,7 +68,6 @@ export function createAsteroid(x, y, r, z = 0, forcedName = null) {
         zSpeed: 0,
         name: forcedName,
         textureData: null,
-        rings: null,
         blinkNum: 0,
         color: `hsl(${Math.random() * 360}, ${Math.random() * 10}%, ${15 + Math.random() * 35}%)` // Gray tones with brightness variation
     };
@@ -83,14 +82,17 @@ export function initializePlanetAttributes(roid, forcedHue = null, forcedName = 
     const seed = Math.floor(Math.random() * 100000);
     const rng = mulberry32(seed);
     const hue = forcedHue !== null ? forcedHue : rng() * 360;
+    const existingPlanetsCount = State.roids.filter(r => r.isPlanet && !r._destroyed && r.id !== roid.id).length;
+    
+    // Final safety check: if we're already at the limit, cancel promotion (unless it's the home planet)
+    if (existingPlanetsCount >= PLANET_CONFIG.LIMIT && forcedName !== t("game.home_planet_name")) {
+        return; 
+    }
+
     roid.isPlanet = true;
     roid.name = forcedName || generatePlanetName();
 
-    const countInState = State.roids.filter(r => r.isPlanet && !r._destroyed).length;
-    const isNewToState = !State.roids.find(r => r.id === roid.id);
-    const totalPlanetsCount = countInState + (isNewToState ? 1 : 0);
-
-    if (State.gameRunning) console.log("Count: " + totalPlanetsCount + ". New planet " + roid.name + ".");
+    if (State.gameRunning) console.log("Count: " + (existingPlanetsCount + 1) + ". New planet " + roid.name + ".");
 
     // ELLIPTICAL ORBITAL INITIALIZATION
     // Each planet has its own unique center of gravity (not all orbiting 0,0)
@@ -150,7 +152,7 @@ export function initializePlanetAttributes(roid, forcedHue = null, forcedName = 
     };
     for (let i = 0; i < 5 + Math.floor(rng() * 3); i++) {
         const startAngle = rng() * Math.PI * 2;
-        const radiusFactor = (0.4 + rng() * 0.5);
+        const radiusFactor = (0.3 + rng() * 0.45);
         const vertices = 15 + Math.floor(rng() * 15); // More vertices for smoother landmasses
         const vertexOffsets = [];
         for (let j = 0; j < vertices; j++) vertexOffsets.push(0.7 + rng() * 0.3);
@@ -165,17 +167,6 @@ export function initializePlanetAttributes(roid, forcedHue = null, forcedName = 
     }
     roid.zWait = 0;
     roid.textureData = textureData;
-    if (Math.random() < 0.25 || r > ASTEROID_CONFIG.MAX_SIZE + 100) {
-        roid.rings = {
-            tilt: (rng() * 0.4 - 0.2) + (Math.PI / 2),
-            bands: [
-                { rRatio: 1.2, wRatio: 0.1, alpha: 0.6, color: `hsl(${hue + 60}, 40%, 70%)` },
-                { rRatio: 1.5, wRatio: 0.15, alpha: 0.5, color: `hsl(${hue - 60}, 50%, 50%)` }
-            ]
-        };
-    } else {
-        roid.rings = null;
-    }
 }
 
 
@@ -299,10 +290,16 @@ export function spawnShipsSquad(station) {
 
 
 export function generatePlanetName() {
-    const s1 = syllables[Math.floor(Math.random() * syllables.length)];
-    const s2 = syllables[Math.floor(Math.random() * syllables.length)];
-    const suf = suffixes[Math.floor(Math.random() * suffixes.length)];
-    return `${s1}${s2.toLowerCase()} ${suf}`;
+    // Priority names from the legend
+    const legendNames = [t("game.home_planet_name"), t("game.planet_name_2"), t("game.planet_name_3")];
+    const presentNames = State.roids.filter(r => r.isPlanet && !r._destroyed).map(r => r.name);
+
+    for (let name of legendNames) {
+        if (!presentNames.includes(name)) return name;
+    }
+
+    // Fallback if all legend names are taken (unlikely with LIMIT=3)
+    return "DEEP SPACE";
 }
 
 

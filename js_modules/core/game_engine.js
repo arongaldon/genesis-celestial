@@ -1,4 +1,4 @@
-import { ASTEROID_CONFIG, BOUNDARY_CONFIG, GALAXY_CONFIG, GLOBAL_LIGHT, PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FPS, FRICTION, G_CONST, MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE, SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, suffixes, syllables, DOM } from './config.js';
+import { ASTEROID_CONFIG, BOUNDARY_CONFIG, GALAXY_CONFIG, GLOBAL_LIGHT, PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FPS, FRICTION, G_CONST, MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE, SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, DOM } from './config.js';
 import { State } from './state.js';
 import { SpatialHash, mulberry32, getShapeName } from '../utils/utils.js';
 import { AudioEngine } from '../audio/audio.js';
@@ -6,7 +6,7 @@ import { newPlayerShip, createAsteroid, initializePlanetAttributes, createAstero
 import { initBackground, createGalaxy, createAmbientFog } from '../graphics/background.js';
 import { createExplosion, createShockwave, createExplosionDebris } from '../graphics/fx.js';
 import { getShipTier, increaseShipScore, onShipDestroyed, onStationDestroyed } from '../systems/scoring.js';
-import { drawPlanetTexture, drawRadar, drawHeart, drawLives, updateHUD, updateAsteroidCounter, showInfoLEDText, addScreenMessage, drawRings, drawShipShape, drawBullet } from '../graphics/render.js';
+import { drawPlanetTexture, drawRadar, drawHeart, drawLives, updateHUD, updateAsteroidCounter, showInfoLEDText, addScreenMessage, drawShipShape, drawBullet } from '../graphics/render.js';
 import { changeRadarZoom, shootLaser } from './input.js';
 import { fireEntityWeapon, fireGodWeapon } from '../systems/combat.js';
 import { enemyShoot, isTrajectoryClear, proactiveCombatScanner, applyEvasionForces } from '../entities/ai.js';
@@ -36,6 +36,7 @@ export function createLevel() {
         let planetX = (Math.random() - 0.5) * 5000;
         let planetY = (Math.random() - 0.5) * 5000;
         let firstPlanet = createAsteroid(planetX, planetY, PLANET_CONFIG.SIZE, 0, t("game.home_planet_name"));
+        firstPlanet.blinkNum = 120; // Safety window at start
         State.roids.push(firstPlanet);
         State.homePlanetId = firstPlanet.id;
 
@@ -420,14 +421,21 @@ export function loop() {
     }
 
     if (!State.playerShip.dead) {
-        if (State.inputMode === 'mouse') { // Mouse/Pointer control: rotate towards cursor
+        let isRotating = false;
+        if ((State.keys.ArrowLeft || State.keys.KeyA) && !State.keys.Shift) {
+            State.playerShip.a -= 0.08;
+            isRotating = true;
+        }
+        if ((State.keys.ArrowRight || State.keys.KeyD) && !State.keys.Shift) {
+            State.playerShip.a += 0.08;
+            isRotating = true;
+        }
+
+        if (State.inputMode === 'mouse' && !isRotating) { // Mouse/Pointer control: rotate towards cursor
             const dx = State.mouse.x - State.width / 2; const dy = State.mouse.y - State.height / 2;
             State.playerShip.a = Math.atan2(dy, dx);
         }
-        else {
-            // Keyboard/Touch swipe control: Arrow State.keys handle rotation
-            if (State.keys.ArrowLeft) State.playerShip.a -= 0.1; if (State.keys.ArrowRight) State.playerShip.a += 0.1;
-        }
+
         if (State.inputMode === 'touch') {
             State.playerShip.thrusting = isTouching && (Date.now() - touchStartTime >= MIN_DURATION_TAP_TO_MOVE);
         } else {
@@ -444,16 +452,22 @@ export function loop() {
             if (Math.random() < 0.2) AudioEngine.playThrust(State.worldOffsetX, State.worldOffsetY);
         }
 
-        if (State.keys.KeyA) { // Strafe Left
+        if ((State.keys.KeyA || State.keys.ArrowLeft) && State.keys.Shift) { // Strafe Left
             const strafeAngle = State.playerShip.a - Math.PI / 2;
             deltaX += SHIP_CONFIG.THRUST * strafeMultiplier * Math.cos(strafeAngle);
             deltaY += SHIP_CONFIG.THRUST * strafeMultiplier * Math.sin(strafeAngle);
             if (Math.random() < 0.2) AudioEngine.playThrust(State.worldOffsetX, State.worldOffsetY);
         }
-        if (State.keys.KeyD) { // Strafe Right
+        if ((State.keys.KeyD || State.keys.ArrowRight) && State.keys.Shift) { // Strafe Right
             const strafeAngle = State.playerShip.a + Math.PI / 2;
             deltaX += SHIP_CONFIG.THRUST * strafeMultiplier * Math.cos(strafeAngle);
             deltaY += SHIP_CONFIG.THRUST * strafeMultiplier * Math.sin(strafeAngle);
+            if (Math.random() < 0.2) AudioEngine.playThrust(State.worldOffsetX, State.worldOffsetY);
+        }
+
+        if (State.keys.ArrowDown && State.keys.Shift) { // Move Backwards
+            deltaX -= SHIP_CONFIG.THRUST * strafeMultiplier * Math.cos(State.playerShip.a);
+            deltaY -= SHIP_CONFIG.THRUST * strafeMultiplier * Math.sin(State.playerShip.a);
             if (Math.random() < 0.2) AudioEngine.playThrust(State.worldOffsetX, State.worldOffsetY);
         }
 
@@ -506,7 +520,7 @@ export function loop() {
         }
 
         // Apply braking/friction
-        if (State.keys.ArrowDown) { State.velocity.x *= 0.92; State.velocity.y *= 0.92; }
+        if (State.keys.ArrowDown && !State.keys.Shift) { State.velocity.x *= 0.92; State.velocity.y *= 0.92; }
         else { State.velocity.x *= FRICTION; State.velocity.y *= FRICTION; }
 
         // Limit max speed
@@ -1994,7 +2008,7 @@ export function loop() {
             if (r.isPlanet) {
                 const planetsBefore = State.roids.filter(plan => plan.isPlanet && !plan._destroyed).length;
                 if (State.gameRunning) console.log("Count: " + (planetsBefore - 1) + ". Planet " + r.name + " destroyed.");
-                PLANET_CONFIG.LIMIT = Math.max(0, PLANET_CONFIG.LIMIT - 1);
+
             }
             State.roids.splice(i, 1);
             if (!r.isPlanet) updateAsteroidCounter();
@@ -2053,35 +2067,8 @@ export function loop() {
 
 
             if (r.isPlanet) {
-
-                // === DRAW PLANET RINGS (BACK HALF) ===
-                if (r.rings) {
-                    drawRings(DOM.canvasContext, r.rings, r.r, depthScale);
-                }
-
                 // Draw planet texture and name
                 drawPlanetTexture(DOM.canvasContext, 0, 0, r.r, r.textureData);
-
-                // === DRAW PLANET RINGS (FRONT HALF) ===
-                if (r.rings) {
-                    DOM.canvasContext.save();
-                    DOM.canvasContext.rotate(r.rings.tilt);
-                    r.rings.bands.forEach(band => {
-                        const bandRadius = r.r * band.rRatio;
-                        const bandWidth = r.r * band.wRatio;
-                        const outerRadius = bandRadius * depthScale;
-
-                        DOM.canvasContext.lineWidth = bandWidth * depthScale;
-                        DOM.canvasContext.strokeStyle = band.color;
-                        DOM.canvasContext.globalAlpha = band.alpha * depthAlpha;
-                        DOM.canvasContext.shadowBlur = 0;
-
-                        DOM.canvasContext.beginPath();
-                        DOM.canvasContext.ellipse(0, 0, outerRadius, outerRadius * 0.15, 0, Math.PI, Math.PI * 2, false);
-                        DOM.canvasContext.stroke();
-                    });
-                    DOM.canvasContext.restore();
-                }
 
                 // Draw Name
                 DOM.canvasContext.globalAlpha = depthAlpha;
@@ -2129,12 +2116,12 @@ export function loop() {
                 DOM.canvasContext.fill();
 
                 // Draw Craters (Only on larger asteroids, and only on half of them for performance/variety)
-                if (r.r >= ASTEROID_CONFIG.MIN_SIZE * 1.5 && r.id % 2 === 0) {
+                if (r.r >= ASTEROID_CONFIG.MAX_SIZE * 0.8 && r.id % 2 === 0) {
                     DOM.canvasContext.fillStyle = 'rgba(0, 0, 0, 0.4)';
                     DOM.canvasContext.strokeStyle = 'rgba(0, 0, 0, 0.8)';
                     DOM.canvasContext.lineWidth = 1;
                     // Deterministic pseudo-random generation to keep craters bound to specific asteroid ID
-                    const craterCount = 2 + (r.id % 3);
+                    const craterCount = 1 + (r.id % 2);
                     for (let c = 0; c < craterCount; c++) {
                         let pseudoRand1 = ((r.id * 13 + c * 29) % 100) / 100;
                         let pseudoRand2 = ((r.id * 17 + c * 31) % 100) / 100;
@@ -2745,7 +2732,7 @@ export function loop() {
                                 createExplosion(pVpX, pVpY, 50, '#ffff00', 4, 'spark');
                                 AudioEngine.playPlanetExplosion(planet.x, planet.y, planet.z || 0);
 
-                                PLANET_CONFIG.LIMIT = Math.max(0, PLANET_CONFIG.LIMIT - 1);
+
                                 if (planet.id === State.homePlanetId) {
                                     triggerHomePlanetLost('enemy');
                                 } else {
@@ -2923,7 +2910,7 @@ export function loop() {
                                 createExplosion(pVpX, pVpY, 100, '#ff4400', 12, 'flame');
                                 AudioEngine.playPlanetExplosion(planet.x, planet.y, planet.z || 0);
 
-                                PLANET_CONFIG.LIMIT = Math.max(0, PLANET_CONFIG.LIMIT - 1);
+
                                 if (planet.id === State.homePlanetId) {
                                     triggerHomePlanetLost('player');
                                 } else {

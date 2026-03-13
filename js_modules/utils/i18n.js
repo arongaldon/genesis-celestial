@@ -29,7 +29,9 @@ export const translations = {
         "game.lethal_radius_warning": "WARNING: LETHAL RADIUS OVERLAPS FRIENDS/HOME",
 
         "game.planet_vaporized": "PLANET {name} VAPORIZED",
-        "game.home_planet_name": "HOME",
+        "game.home_planet_name": "HOGAR",
+        "game.planet_name_2": "KRYSTA PRIME",
+        "game.planet_name_3": "ASTRA",
         "game.warn_shoot_home": "That's your home planet!",
         "game.warn_cease_fire": "⚠ WARNING: CEASE FIRE ON ALLIES!",
         "game.warn_home_attack": "⚠ WARNING: HOME PLANET UNDER ATTACK!",
@@ -80,6 +82,8 @@ export const translations = {
 
         "game.planet_vaporized": "PLANETA {name} VAPORIZADO",
         "game.home_planet_name": "HOGAR",
+        "game.planet_name_2": "KRYSTA PRIME",
+        "game.planet_name_3": "ASTRA",
         "game.warn_shoot_home": "¡Ese es tu planeta hogar!",
         "game.warn_cease_fire": "⚠ ADVERTENCIA: ¡ALTO EL FUEGO A LOS ALIADOS!",
         "game.warn_home_attack": "⚠ ADVERTENCIA: ¡PLANETA HOGAR BAJO ATAQUE!",

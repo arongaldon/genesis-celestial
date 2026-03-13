@@ -1,4 +1,4 @@
-import { ASTEROID_CONFIG, BOUNDARY_CONFIG, GLOBAL_LIGHT, PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FPS, FRICTION, G_CONST, MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE, SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, suffixes, syllables, DOM } from '../core/config.js';
+import { ASTEROID_CONFIG, BOUNDARY_CONFIG, GLOBAL_LIGHT, PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FPS, FRICTION, G_CONST, MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE, SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, DOM } from '../core/config.js';
 import { State } from '../core/state.js';
 
 export function drawPlanetTexture(ctx, x, y, r, textureData) {
@@ -11,6 +11,11 @@ export function drawPlanetTexture(ctx, x, y, r, textureData) {
     ctx.fill();
 
     // 2. Landmasses (Simple lines)
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.clip();
+
     ctx.fillStyle = textureData.landColor;
     textureData.landmasses.forEach(lm => {
         ctx.beginPath();
@@ -28,6 +33,7 @@ export function drawPlanetTexture(ctx, x, y, r, textureData) {
         }
         ctx.fill();
     });
+    ctx.restore();
 
     // 3. Craters (Flat circles, no strokes)
     ctx.fillStyle = textureData.craterColor;
@@ -276,22 +282,6 @@ export function addScreenMessage(text, color = "white") {
     }
 }
 
-export function drawRings(ctx, rings, planetRadius, depthScale) {
-    ctx.save();
-    ctx.rotate(rings.tilt);
-    rings.bands.forEach(band => {
-        const bandRadius = planetRadius * band.rRatio;
-        const bandWidth = planetRadius * band.wRatio;
-        const outerRadius = bandRadius * depthScale;
-        ctx.lineWidth = bandWidth * depthScale;
-        ctx.strokeStyle = band.color;
-        ctx.globalAlpha = band.alpha * depthScale;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, outerRadius, outerRadius * 0.15, 0, 0, Math.PI, false);
-        ctx.stroke();
-    });
-    ctx.restore();
-}
 
 // -----------------------------------------------------
 // SHIP DRAWING ABSTRACTION

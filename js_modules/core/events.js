@@ -1,6 +1,6 @@
 import { State } from './state.js';
 import { changeRadarZoom, shootLaser } from './input.js';
-import { ASTEROID_CONFIG, BOUNDARY_CONFIG, PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FPS, FRICTION, G_CONST, MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE, SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, suffixes, syllables, DOM } from './config.js';
+import { ASTEROID_CONFIG, BOUNDARY_CONFIG, PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FPS, FRICTION, G_CONST, MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE, SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, DOM } from './config.js';
 
 export let isTouching = false;
 export let touchStartTime = 0;
@@ -8,6 +8,13 @@ export let touchStartTime = 0;
 export function setupInputEvents() {
     // Function to handle zoom change (used by Z key and Mouse Wheel)
     document.addEventListener('keydown', (e) => {
+        // Start/Restart with Space or Enter
+        if ((e.code === 'Space' || e.code === 'Enter') && !State.gameRunning && DOM.startBtn && DOM.startBtn.style.display !== 'none') {
+            e.preventDefault(); // Prevent page scrolling/default behavior
+            window.startGame();
+            return;
+        }
+
         if (e.code === 'Space') shootLaser();
 
         // NOTE: The logic for KeyE to create matter has been permanently removed.
@@ -28,6 +35,13 @@ export function setupInputEvents() {
 
         if (e.code === 'KeyA') State.keys.KeyA = true;
         if (e.code === 'KeyD') State.keys.KeyD = true;
+
+        if (['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code) && !e.shiftKey) {
+            State.inputMode = 'keyboard';
+            document.body.classList.add('keyboard-mode');
+        }
+        
+        State.keys.Shift = e.shiftKey;
     });
     document.addEventListener('keyup', (e) => {
         if (e.code === 'KeyW' || e.code === 'ArrowUp') State.keys.ArrowUp = false;
@@ -38,10 +52,13 @@ export function setupInputEvents() {
 
         if (e.code === 'KeyA') State.keys.KeyA = false;
         if (e.code === 'KeyD') State.keys.KeyD = false;
+
+        State.keys.Shift = e.shiftKey;
     });
     document.addEventListener('mousemove', (e) => {
         if (e.target.closest('.btn')) return; // Ignore if over a button
         State.inputMode = 'mouse'; State.mouse.x = e.clientX; State.mouse.y = e.clientY;
+        document.body.classList.remove('keyboard-mode');
     });
     document.addEventListener('mousedown', (e) => {
         if (!State.gameRunning || e.target.closest('button')) return;

@@ -34,7 +34,12 @@ export function createShockwave(worldX, worldY) {
 }
 
 export function createExplosionDebris(cx, cy, count, isHot = false) {
-    for (let i = 0; i < count; i++) {
+    // If we're already crowded, don't spawn as many debris pieces
+    let spawnLimit = count;
+    if (State.roids.length > ASTEROID_CONFIG.MAX_ROIDS * 0.8) spawnLimit = Math.floor(count * 0.5);
+    if (State.roids.length >= ASTEROID_CONFIG.MAX_ROIDS) spawnLimit = 0;
+
+    for (let i = 0; i < spawnLimit; i++) {
         const angle = Math.random() * Math.PI * 2;
         const offset = Math.random() * 600; // Spread them out widely to prevent overlap cascades
         const x = cx + Math.cos(angle) * offset;
