@@ -6,7 +6,9 @@ export class SpatialHash {
     }
 
     getKey(x, y) {
-        return `${Math.floor(x / this.cellSize)},${Math.floor(y / this.cellSize)}`;
+        const gx = (x / this.cellSize) | 0;
+        const gy = (y / this.cellSize) | 0;
+        return (gx << 16) ^ gy;
     }
 
     clear() {
@@ -20,13 +22,13 @@ export class SpatialHash {
     }
 
     query(obj) {
-        const cx = Math.floor(obj.x / this.cellSize);
-        const cy = Math.floor(obj.y / this.cellSize);
+        const cx = (obj.x / this.cellSize) | 0;
+        const cy = (obj.y / this.cellSize) | 0;
         this._queryResults.length = 0;
 
         for (let i = -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
-                const key = `${cx + i},${cy + j}`;
+                const key = ((cx + i) << 16) ^ (cy + j);
                 if (this.grid.has(key)) {
                     const cellObjects = this.grid.get(key);
                     for (let k = 0; k < cellObjects.length; k++) {

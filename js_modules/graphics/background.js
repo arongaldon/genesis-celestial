@@ -29,6 +29,8 @@ export function initBackground() {
 
         State.backgroundLayers.galaxies.push(newGalaxy);
     }
+    // Galaxies are pre-sorted during initBackground for performance
+    State.backgroundLayers.galaxies.sort((a, b) => a.size - b.size);
     for (let i = 0; i < 3; i++) State.ambientFogs.push(createAmbientFog()); // NEW: Initial ambient fogs
     const createStar = () => ({ x: Math.random() * State.width, y: Math.random() * State.height, size: Math.random() * 1.5 + 0.5, alpha: Math.random() * 0.5 + 0.3 });
     for (let i = 0; i < 20; i++) State.backgroundLayers.starsFar.push(createStar());
@@ -37,60 +39,40 @@ export function initBackground() {
 }
 
 export function createGalaxy() {
-    const arms = Math.floor(Math.random() * (GALAXY_CONFIG.ARMS_LIMIT - 1)) + 2; // 2 to ARMS_LIMIT arms
-    const squish = 0.2 + Math.random() * 0.8; // Perspective tilt: 1.0 = top-down, 0.2 = very edge-on
-
-    // Size distribution: mostly mid-sized, some absolutely massive ones
+    const arms = Math.floor(Math.random() * (GALAXY_CONFIG.ARMS_LIMIT - 1)) + 2;
+    const squish = 0.2 + Math.random() * 0.8;
     let sizeRng = Math.random();
     let size = sizeRng > 0.85 ? (2000 + Math.random() * 2000) : (400 + Math.random() * 1000);
-
-    // Scale star count relative to size (more stars = denser glow)
     const starCount = Math.floor(size * (1.5 + Math.random()));
 
-    // Generate a core color and an edge color for the galaxy
     const hueSeed = Math.random();
     let coreColor, edgeColor;
     if (hueSeed > 0.6) {
-        // Golden core to purple/blue edge
         coreColor = { r: 255, g: 220, b: 150 };
         edgeColor = { r: 50, g: 100, b: 255 };
     } else if (hueSeed > 0.3) {
-        // Intense bright blue core to darker teal/purple edge
         coreColor = { r: 200, g: 230, b: 255 };
         edgeColor = { r: 100, g: 50, b: 200 };
     } else {
-        // Reddish/Orange core to yellow edge
         coreColor = { r: 255, g: 180, b: 100 };
         edgeColor = { r: 255, g: 100, b: 50 };
     }
 
-    let stars = [];
+    const stars = [];
     const armSeparation = (Math.PI * 2) / arms;
-    const spiralSwirl = 1.5 + Math.random() * 1.5; // How tightly wound
+    const spiralSwirl = 1.5 + Math.random() * 1.5;
 
     for (let i = 0; i < starCount; i++) {
-        // Distribute most stars near the center (exponential falloff)
         const distRatio = Math.pow(Math.random(), 2);
         const dist = distRatio * size;
-
-        // Logarithmic spiral angle calculation
         const baseAngle = (i % arms) * armSeparation;
         const spiralAngle = distRatio * Math.PI * spiralSwirl;
-
-        // Add random scatter (more scatter further out)
         const scatter = (Math.random() - 0.5) * (0.2 + distRatio * 0.8);
-
         const finalAngle = baseAngle + spiralAngle + scatter;
-
-        // Determine color blending based on distance from core
         const r = coreColor.r * (1 - distRatio) + edgeColor.r * distRatio;
         const g = coreColor.g * (1 - distRatio) + edgeColor.g * distRatio;
         const b = coreColor.b * (1 - distRatio) + edgeColor.b * distRatio;
-
-        // Size of individual star point
         const starSize = Math.random() > 0.9 ? (1 + Math.random() * 2) : (0.5 + Math.random());
-
-        // Core stars are brighter
         const alpha = Math.min(1.0, (1.0 - distRatio) + Math.random() * 0.3);
 
         stars.push({
@@ -98,19 +80,42 @@ export function createGalaxy() {
             theta: finalAngle,
             size: starSize,
             alpha,
-            color: `rgba(${Math.floor(r)},${Math.floor(g)},${Math.floor(b)}, ` // Base string, alpha added in render
+            color: `rgba(${Math.floor(r)},${Math.floor(g)},${Math.floor(b)}, `
         });
     }
 
-    // Place galaxy randomly within viewport bounds so they are initially visible
-    // They will wrap around when they drift off-screen
+    // Prerender to offscreen canvas
+    const maxDimension = size * 2.5;
+    const oCanvas = document.createElement('canvas');
+    oCanvas.width = maxDimension;
+    oCanvas.height = maxDimension;
+    const oCtx = oCanvas.getContext('2d');
+    const center = maxDimension / 2;
+
+    oCtx.globalCompositeOperation = 'screen';
+    const coreRad = size * 0.3;
+    let coreGrad = oCtx.createRadialGradient(center, center, 0, center, center, coreRad);
+    coreGrad.addColorStop(0, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${GALAXY_CONFIG.BRIGHTNESS})`);
+    coreGrad.addColorStop(0.2, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${GALAXY_CONFIG.BRIGHTNESS * 0.6})`);
+    coreGrad.addColorStop(1, `rgba(${edgeColor.r}, ${edgeColor.g}, ${edgeColor.b}, 0)`);
+
+    oCtx.fillStyle = coreGrad;
+    oCtx.beginPath();
+    oCtx.arc(center, center, coreRad, 0, Math.PI * 2);
+    oCtx.fill();
+
+    stars.forEach(s => {
+        oCtx.fillStyle = `${s.color}${s.alpha * GALAXY_CONFIG.BRIGHTNESS})`;
+        oCtx.beginPath();
+        oCtx.arc(center + s.r * Math.cos(s.theta), center + s.r * Math.sin(s.theta), s.size, 0, Math.PI * 2);
+        oCtx.fill();
+    });
+
     return {
         x: Math.random() * State.width,
         y: Math.random() * State.height,
         size,
-        stars,
-        coreColor,
-        edgeColor,
+        cachedCanvas: oCanvas,
         angle: Math.random() * Math.PI,
         squish
     };

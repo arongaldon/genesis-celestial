@@ -278,11 +278,7 @@ export function loop() {
     }
 
     const isSafe = (obj) => !isNaN(obj.x) && !isNaN(obj.y) && isFinite(obj.x) && isFinite(obj.y);
-    State.roids = State.roids.filter(isSafe);
-    State.ships = State.ships.filter(isSafe);
-    State.playerShipBullets = State.playerShipBullets.filter(isSafe);
-    State.enemyShipBullets = State.enemyShipBullets.filter(isSafe);
-
+    // State lists are now managed and cleaned up in physics.js and combat.js to avoid repetitive filtering here
     const activePlanets = State.roids.filter(r => r.isPlanet && !r._destroyed);
 
     // Track last known home planet position for cinematic camera
@@ -408,9 +404,9 @@ export function loop() {
     DOM.canvasContext.stroke();
     DOM.canvasContext.restore();
 
-    // Win condition check: make this very robust. Directly check the State.roids array.
-    const activeAsteroids = State.roids.filter(r => !r.isPlanet).length;
-    if (State.gameRunning && !State.victoryState && activeAsteroids === 0) {
+    // Win condition check: avoid .filter().length for performance
+    const hasAsteroids = State.roids.some(r => !r.isPlanet);
+    if (State.gameRunning && !State.victoryState && !hasAsteroids) {
         winGame();
     }
 
@@ -798,19 +794,14 @@ export function loop() {
         DOM.canvasContext.translate(-State.width / 2, -State.height / 2);
     }
 
-    // Sort galaxies by size (smallest to largest) for depth sorting
-    State.backgroundLayers.galaxies.sort((a, b) => a.size - b.size);
-
+    // Galaxies are pre-sorted during initBackground for performance
     State.backgroundLayers.galaxies.forEach(g => {
         // Slow parallax relative to standard speed
         g.x -= State.velocity.x * 0.002;
         g.y -= State.velocity.y * 0.002;
         g.angle += 0.0005;
 
-        g.angle += 0.0005; // Slower rotation
-
         // FAST PRE-CHECK: Skip rendering entirely if off-screen (with buffer)
-        // Since coordinate system is reversed via translate above, we check against standard canvas bounds plus a generic buffer
         const buffer = g.size * 1.5;
         if (g.x < -buffer || g.x > State.width + buffer ||
             g.y < -buffer || g.y > State.height + buffer) {
@@ -822,29 +813,9 @@ export function loop() {
         DOM.canvasContext.rotate(g.angle);
         DOM.canvasContext.scale(1, g.squish || 1); // Apply perspective tilt
 
-        // 1. Draw glowing radiant core
-        DOM.canvasContext.globalCompositeOperation = 'screen';
-        const coreRad = g.size * 0.3; // Core size proportional to galaxy
-        let coreGrad = DOM.canvasContext.createRadialGradient(0, 0, 0, 0, 0, coreRad);
-
-        // Use the generated colors (core is very bright, edge scales off). Dimmed for distant effect.
-        coreGrad.addColorStop(0, `rgba(${g.coreColor.r}, ${g.coreColor.g}, ${g.coreColor.b}, ${GALAXY_CONFIG.BRIGHTNESS})`);
-        coreGrad.addColorStop(0.2, `rgba(${g.coreColor.r}, ${g.coreColor.g}, ${g.coreColor.b}, ${GALAXY_CONFIG.BRIGHTNESS * 0.6})`);
-        coreGrad.addColorStop(1, `rgba(${g.edgeColor.r}, ${g.edgeColor.g}, ${g.edgeColor.b}, 0)`);
-
-        DOM.canvasContext.fillStyle = coreGrad;
-        DOM.canvasContext.beginPath();
-        DOM.canvasContext.arc(0, 0, coreRad, 0, Math.PI * 2);
-        DOM.canvasContext.fill();
-
-        // 2. Draw stars (reduced alpha)
-        g.stars.forEach(s => {
-            // The color string was prepared in entities.js like: `rgba(R,G,B, `
-            DOM.canvasContext.fillStyle = `${s.color}${s.alpha * GALAXY_CONFIG.BRIGHTNESS})`;
-            DOM.canvasContext.beginPath();
-            DOM.canvasContext.arc(s.r * Math.cos(s.theta), s.r * Math.sin(s.theta), s.size, 0, Math.PI * 2);
-            DOM.canvasContext.fill();
-        });
+        // Draw the prerendered galaxy
+        const center = g.cachedCanvas.width / 2;
+        DOM.canvasContext.drawImage(g.cachedCanvas, -center, -center);
 
         DOM.canvasContext.restore();
     });
@@ -2073,11 +2044,9 @@ export function loop() {
             DOM.canvasContext.translate(vpX, vpY); // Translate to Viewport Position
             DOM.canvasContext.scale(depthScale, depthScale);
 
-            // Apply calculated depth alpha / brightness
+            // Apply calculated depth alpha
             DOM.canvasContext.globalAlpha = depthAlpha;
-            if (r.isPlanet && depthBrightness < 1) {
-                DOM.canvasContext.filter = `brightness(${depthBrightness})`;
-            }
+            // Removed slow ctx.filter for brightness performance boost
 
             // Draw asteroid blinking if newly created
             if (r.blinkNum % 2 !== 0) { DOM.canvasContext.globalAlpha *= 0.3; }

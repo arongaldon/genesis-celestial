@@ -286,7 +286,6 @@ export function drawRings(ctx, rings, planetRadius, depthScale) {
         ctx.lineWidth = bandWidth * depthScale;
         ctx.strokeStyle = band.color;
         ctx.globalAlpha = band.alpha * depthScale;
-        ctx.shadowBlur = 0;
         ctx.beginPath();
         ctx.ellipse(0, 0, outerRadius, outerRadius * 0.15, 0, 0, Math.PI, false);
         ctx.stroke();
@@ -328,9 +327,6 @@ export function drawShipShape({
         const BORDER_COLOR = borderColor || '#00FFFF';
         const CORE_COLOR = thrustColor || '#FFFFFF';
 
-        ctx.shadowBlur = 40;
-        ctx.shadowColor = BORDER_COLOR;
-
         // Advanced Chassis Design - Wide and multi-segmented
         ctx.beginPath();
         ctx.moveTo(r * 2.5 * norm, 0); // Front
@@ -353,7 +349,6 @@ export function drawShipShape({
         ctx.stroke();
 
         // Tech Overlay (Inner hull patterns)
-        ctx.shadowBlur = 15;
         ctx.beginPath();
         ctx.moveTo(r * 2 * norm, 0);
         ctx.lineTo(-r * 1.5 * norm, r * 0.8 * norm);
@@ -363,7 +358,6 @@ export function drawShipShape({
 
         // Pulsing Energy Core
         const pulse = 0.7 + Math.sin(Date.now() / 200) * 0.3;
-        ctx.shadowBlur = 50 * pulse;
         ctx.fillStyle = CORE_COLOR;
         ctx.beginPath();
         ctx.arc(0, 0, r * norm * 0.6 * pulse, 0, Math.PI * 2);
@@ -372,7 +366,6 @@ export function drawShipShape({
         // Heavy Thrusters
         const EXHAUST_X = -r * 3 * norm;
         if (isThrusting) {
-            ctx.shadowBlur = 80;
             ctx.fillStyle = `${thrustColor || 'rgba(0, 255, 255)'}`.replace(')', ', 0.6)').replace('rgb', 'rgba');
             ctx.beginPath();
             ctx.moveTo(EXHAUST_X, -r * 1.2 * norm);
@@ -381,10 +374,8 @@ export function drawShipShape({
             ctx.closePath();
             ctx.fill();
         }
-        ctx.shadowBlur = 0;
 
     } else if (tier === 11) { // THE HYPERION - "The Celestial Dreadnought"
-        ctx.shadowBlur = 25; ctx.shadowColor = accentColor;
         ctx.lineWidth = 3;
 
         // 1. REINFORCED CHASSIS
@@ -421,21 +412,18 @@ export function drawShipShape({
         ctx.fill(); ctx.stroke();
 
         // 3. CELESTIAL CORE
-        ctx.shadowBlur = 40; ctx.shadowColor = '#fff';
         ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2);
         ctx.fill();
 
         // 4. ENERGY CHANNELS
-        ctx.shadowBlur = 0;
         ctx.strokeStyle = accentColor; ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(r * 2.0, 0); ctx.lineTo(r * 0.5, 0); // Core to nose
         ctx.stroke();
 
     } else if (tier === 10) { // THE TITAN - Heavy Dreadnought
-        ctx.shadowBlur = 20; ctx.shadowColor = accentColor;
         ctx.fillStyle = hullColor; ctx.strokeStyle = borderColor; ctx.lineWidth = 4;
 
         // Main Block
@@ -450,7 +438,6 @@ export function drawShipShape({
         ctx.strokeRect(-r * 0.5, r * 0.6, r * 1.5, r * 0.6);
 
     } else if (tier === 9) { // THE CELESTIAL - Radiant Star
-        ctx.shadowBlur = 25; ctx.shadowColor = detailColor;
         ctx.fillStyle = hullColor; ctx.strokeStyle = borderColor; ctx.lineWidth = 2;
 
         // 4-Pointed Star
@@ -469,7 +456,6 @@ export function drawShipShape({
         ctx.beginPath(); ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2); ctx.stroke();
 
     } else if (tier === 8) { // THE SPHERE - Energy Orb
-        ctx.shadowBlur = 20; ctx.shadowColor = accentColor;
         let grad = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r);
         grad.addColorStop(0, '#fff'); grad.addColorStop(0.5, accentColor); grad.addColorStop(1, hullColor);
         ctx.fillStyle = grad;
@@ -486,7 +472,6 @@ export function drawShipShape({
     } else if (tier >= 1 && tier <= 7) {
         // GEOMETRIC SHAPES (1-7)
         const sides = tier + 3;
-        ctx.shadowBlur = 15; ctx.shadowColor = detailColor;
         ctx.fillStyle = hullColor;
         ctx.strokeStyle = borderColor; ctx.lineWidth = 3;
 
@@ -534,8 +519,6 @@ export function drawShipShape({
         const noseLength = 1.3;
         const wingSpan = 0.8;
 
-        ctx.shadowBlur = 15; ctx.shadowColor = thrustColor;
-
         // Triangle
         ctx.beginPath();
         ctx.moveTo(baseSize * noseLength, 0);
@@ -559,7 +542,6 @@ export function drawShipShape({
 
     // === COMMON THRUSTER LOGIC ===
     if (isThrusting) {
-        ctx.shadowBlur = 25; ctx.shadowColor = thrustColor;
         ctx.fillStyle = `${thrustColor}`.replace(')', ', 0.6)').replace('rgb', 'rgba').replace('hsl', 'hsla');
         const thrustL = 30 + Math.random() * 10;
 
@@ -582,7 +564,6 @@ export function drawShipShape({
             ctx.lineTo(-r * 0.7, r * 0.2);
             ctx.fill();
         }
-        ctx.shadowBlur = 0;
     }
 }
 
@@ -606,7 +587,6 @@ export function drawBullet(ctx, bullet, vpX, vpY) {
 
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.globalCompositeOperation = 'lighter';
 
     const xv = bullet.xv; const yv = bullet.yv;
     const ang = Math.atan2(yv, xv);
