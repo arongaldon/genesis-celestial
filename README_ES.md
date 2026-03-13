@@ -1,5 +1,7 @@
 # Asteroids: Celestial Genesis 2026
 
+[English](README.md) | **Español**
+
 El Clásico, reimaginado por Arón Galdón Ginés.
 
 Una nueva experiencia en el clásico juego de Asteroides. Navega por un universo generado procedimentalmente, sobrevive en medio de batallas espaciales entre planetas, respeta a tus aliados y evoluciona tu nave desde un simple vehículo hasta una potencia cósmica.
