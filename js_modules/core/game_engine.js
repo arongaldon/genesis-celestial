@@ -2575,8 +2575,8 @@ export function loop() {
                 cockpitGrad1: COCKPIT_GRAD_1,
                 cockpitGrad2: COCKPIT_GRAD_2
             });
+            DOM.canvasContext.restore(); // Paired with save() above — must stay inside this if-block
         }
-        DOM.canvasContext.restore();
     }
     if (State.playerShip.blinkNum > 0) State.playerShip.blinkNum--;
     DOM.canvasContext.restore(); // POP 1: Restore state after ship block

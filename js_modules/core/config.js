@@ -1,9 +1,9 @@
 
 export const ASTEROID_CONFIG = {
-   COUNT: 1100,
-   INIT_INNER: 5000,
-   MAX_ROIDS: 2500,
-   MAX_SIZE: 400,
+   COUNT: 10000,
+   INIT_INNER: 10000,
+   MAX_ROIDS: 5000,
+   MAX_SIZE: 500,
    MAX_SPEED: 10,
    MIN_SIZE: 50,
    PLANET_DEBRIS: 25,
@@ -23,15 +23,15 @@ export const MAX_Z_DEPTH = 4.0;
 export const MIN_DURATION_TAP_TO_MOVE = 200;
 
 export const GALAXY_CONFIG = {
-   ARMS_LIMIT: 16,
-   BRIGHTNESS: 0.2,
-   LIMIT: 3,
-   MIN_DIST: 3000
+   ARMS_LIMIT: 18,
+   BRIGHTNESS: 0.3,
+   LIMIT: 5,
+   MIN_DIST: 5000
 };
 
 export const PLANET_CONFIG = {
    LIMIT: 3,
-   SIZE: 1200 // 3 times the size of the largest asteroid
+   SIZE: 2000
 };
 
 export const PLAYER_CONFIG = {
@@ -49,8 +49,8 @@ export const SHIP_CONFIG = {
    COMBAT_ORBIT_DISTANCE: 340,
    EVOLUTION_SCORE_STEP: 1000,
    FRIENDLY_BLUE_HUE: 210,
-   PLANET_LIMIT: 7,
-   MAX_SPEED: 90,
+   PLANET_LIMIT: 14,
+   MAX_SPEED: 100,
    RESISTANCE: 2,
    SEPARATION_DISTANCE: 30,
    SIGHT_RANGE: 2000,
@@ -59,8 +59,8 @@ export const SHIP_CONFIG = {
    THRUST: 0.9
 };
 
-export const SCALE_IN_MOUSE_MODE = 1.0;
-export const SCALE_IN_TOUCH_MODE = 0.5;
+export const SCALE_IN_MOUSE_MODE = 0.72;
+export const SCALE_IN_TOUCH_MODE = 0.36;
 
 export const SCORE_REWARDS = {
    ASTEROID_DESTROYED: 100,
@@ -70,19 +70,19 @@ export const SCORE_REWARDS = {
 };
 
 export const STATION_CONFIG = {
-   PER_PLANET: 1,
+   PER_PLANET: 2,
    SPAWN_TIMER: 300,
    RESISTANCE: 6
 };
 
-export const WORLD_BOUNDS = 13000;
+export const WORLD_BOUNDS = 40000;
 
 export const GLOBAL_LIGHT = {
    X: WORLD_BOUNDS * 2, // Distant sun far out of bounds
    Y: -WORLD_BOUNDS * 2
 };
 
-export const ZOOM_LEVELS = Array.from({ length: 10 }, (_, i) => 1000 + (i * 200) + (i * i * 100));
+export const ZOOM_LEVELS = Array.from({ length: 14 }, (_, i) => 1500 + (i * 500) + (i * i * 200));
 
 
 // DOM elements initialized late to ensure they exist
