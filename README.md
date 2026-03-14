@@ -30,7 +30,7 @@ The original machine was so popular that arcade operators had to install larger 
 
 ### 🌌 The Lore & The Legend
 
-![The Genesis Squad](img/victory.png)
+[![The Dark Legend of Asteroids Celestial Genesis on Youtube!](img/victory.png)](https://youtu.be/toK6rD2HH7Q)
 
 In the year 2026 of the Celestial Age, the asteroid belts of the Orion sector have become the ultimate testing ground for humanity's survival. At the heart of this cosmic struggle is **Aria**, the most gifted pilot of the Genesis Initiative.
 
@@ -58,6 +58,8 @@ Within the Aegis Defense Hubs, the atmosphere is a mix of high-stakes tension an
 
 When the system is finally purified, the celebratory gathering at the station's observation deck is the only reward they seek: standing together, watching the sun rise over a peaceful system they fought so hard to protect.
 
+Podcast available [The Dark Legend of Asteroids Celestial Genesis](<https://youtu.be/toK6rD2HH7Q>) on Youtube!
+
 ## Controls
 
 ### Mouse & Keyboard
@@ -65,7 +67,7 @@ When the system is finally purified, the celebratory gathering at the station's 
 | Action | Input |
 | :--- | :--- |
 | **Rotate** | Mouse movement (automatic) or `A`/`D` / `Left`/`Right` arrows |
-| **Thrust (Forward)** | `W` or `Up Arrow` |
+| **Thrust (Forward)** | `W` or `Up Arrow` or **Right Click** (hold) |
 | **Braking** | `S` or `Down Arrow` |
 | **Strafe (Left/Right)** | `Shift` + `A`/`D` or `Shift` + `Left`/`Right` arrows |
 | **Backwards** | `Shift` + `S` or `Shift` + `Down Arrow` |

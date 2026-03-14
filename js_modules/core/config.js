@@ -36,8 +36,8 @@ export const PLANET_CONFIG = {
 
 export const PLAYER_CONFIG = {
    INITIAL_LIVES: 3,
-   RELOAD_TIME_MAX: 12,
-   RELOAD_TIME_MS: 200 // ~12 frames at 60fps
+   RELOAD_TIME_MAX: 8,
+   RELOAD_TIME_MS: 130 // ~8 frames at 60fps
 };
 
 export const SHIP_CONFIG = {

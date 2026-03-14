@@ -62,7 +62,21 @@ export function setupInputEvents() {
     });
     document.addEventListener('mousedown', (e) => {
         if (!State.gameRunning || e.target.closest('button')) return;
-        State.inputMode = 'mouse'; shootLaser();
+        State.inputMode = 'mouse';
+        if (e.button === 2) {
+            // Right-click = Thrust (same as ArrowUp / W)
+            State.keys.ArrowUp = true;
+        } else {
+            shootLaser();
+        }
+    });
+    document.addEventListener('mouseup', (e) => {
+        if (e.button === 2) {
+            State.keys.ArrowUp = false;
+        }
+    });
+    document.addEventListener('contextmenu', (e) => {
+        if (State.gameRunning) e.preventDefault(); // Suppress right-click menu during gameplay
     });
 
     // NEW: Mouse Wheel Event Listener for Zoom

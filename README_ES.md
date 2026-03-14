@@ -30,7 +30,7 @@ La máquina original fue tan popular que los operadores de arcade tuvieron que i
 
 ## 🌌 El Lore y La Leyenda
 
-![El Escuadrón Génesis](img/victory.png)
+[![La Oscura Leyenda de Asteroids Celestial Genesis en Youtube!](img/victory.png)](https://youtu.be/toK6rD2HH7Q)
 
 En el año 2026 de la Era Celestial, los cinturones de asteroides del sector de Orión se han convertido en el campo de pruebas definitivo para la supervivencia de la humanidad. En el corazón de esta lucha cósmica se encuentra **Aria**, la piloto más talentosa de la Iniciativa Génesis.
 
@@ -58,6 +58,8 @@ Dentro de los Núcleos de Defensa Aegis, la atmósfera es una mezcla de tensión
 
 Cuando el sistema finalmente se purifica, la reunión de celebración en la cubierta de observación de la estación es la única recompensa que buscan: estar juntos, viendo salir el sol sobre un sistema pacífico por el que tanto lucharon para protegerlo.
 
+¡Disponible el podcast [La Oscura Leyenda de Asteroids Celestial Genesis](<https://youtu.be/toK6rD2HH7Q>) en Youtube!
+
 ## 🕹️ Controles
 
 ### Ratón y Teclado
@@ -65,7 +67,7 @@ Cuando el sistema finalmente se purifica, la reunión de celebración en la cubi
 | Acción | Entrada |
 | :--- | :--- |
 | **Rotar** | Movimiento del ratón (automático) o flechas `A`/`D` / `Izquierda`/`Derecha` |
-| **Impulso (Adelante)** | `W` o `Flecha Arriba` |
+| **Impulso (Adelante)** | `W` o `Flecha Arriba` o **Clic Derecho** (mantener) |
 | **Frenado** | `S` o `Flecha Abajo` |
 | **Desplazamiento Lateral (Izq/Der)** | `Shift` + `A`/`D` o `Shift` + `Flecha Izquierda`/`Derecha` |
 | **Hacia Atrás** | `Shift` + `S` o `Shift` + `Flecha Abajo` |

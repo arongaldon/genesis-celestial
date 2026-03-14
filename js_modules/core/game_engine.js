@@ -143,6 +143,7 @@ export function killPlayerShip(reason = 'normal') {
 }
 
 export function triggerHomePlanetLost(reason) {
+    State.homePlanetDestroyed = true; // Permanently lock player control
     State.playerShip.lives = 0; // Force game over
     killPlayerShip(reason);
 
@@ -420,7 +421,7 @@ export function loop() {
         if (DOM.scoreDisplay) DOM.scoreDisplay.style.color = '#0ff';
     }
 
-    if (!State.playerShip.dead) {
+    if (!State.playerShip.dead && !State.homePlanetDestroyed) {
         let isRotating = false;
         if ((State.keys.ArrowLeft || State.keys.KeyA) && !State.keys.Shift) {
             State.playerShip.a -= 0.08;
@@ -772,6 +773,7 @@ export function loop() {
             continue;
         }
 
+        if (!isFinite(f.x) || !isFinite(f.y) || !isFinite(f.r) || f.r <= 0) continue;
         let g = DOM.canvasContext.createRadialGradient(f.x, f.y, f.r * 0.1, f.x, f.y, f.r);
         g.addColorStop(0, `hsla(${f.hue}, 80%, 40%, ${f.alpha})`);
         g.addColorStop(1, 'transparent');
@@ -793,6 +795,7 @@ export function loop() {
     DOM.canvasContext.globalCompositeOperation = 'screen';
     moveLayer(State.backgroundLayers.nebulas, 0.05);
     State.backgroundLayers.nebulas.forEach(n => {
+        if (!isFinite(n.x) || !isFinite(n.y) || !isFinite(n.r) || n.r <= 0) return;
         let g = DOM.canvasContext.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
         g.addColorStop(0, `hsla(${n.hue}, 80%, 40%, ${n.alpha})`); g.addColorStop(1, 'transparent');
         DOM.canvasContext.fillStyle = g; DOM.canvasContext.beginPath(); DOM.canvasContext.arc(n.x, n.y, n.r, 0, Math.PI * 2); DOM.canvasContext.fill();
@@ -3231,6 +3234,7 @@ export function startGame() {
 
     State.level = 0;
     State.homePlanetId = null;
+    State.homePlanetDestroyed = false; // Reset home planet destroyed flag
     State.screenMessages = [];
     State.victoryState = false;
     State.viewScale = 1.0;

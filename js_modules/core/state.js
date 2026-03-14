@@ -20,6 +20,7 @@ export const State = {
     stationSpawnTimer: 0,
     level: 0,
     homePlanetId: null,
+    homePlanetDestroyed: false,
     screenMessages: [],
     gameRunning: false,
     victoryState: false,
