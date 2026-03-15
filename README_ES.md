@@ -6,7 +6,7 @@ El Clásico, reimaginado por Arón Galdón Ginés.
 
 Una nueva experiencia inspirada en juegos clásicos. Navega por un universo generado procedimentalmente, sobrevive en medio de batallas espaciales entre planetas, respeta a tus aliados y evoluciona tu nave desde un simple vehículo hasta una potencia cósmica.
 
-Juego en línea en <https://arongaldon.github.io/celestial-genesis/>
+Juego en línea en <https://arongaldon.github.io/genesis-celestial/>
 
 ## 🕯️ Honrando la Leyenda: Un Tributo
 
