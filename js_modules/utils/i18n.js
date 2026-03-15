@@ -1,6 +1,6 @@
 export const translations = {
     en: {
-        "ui.title": "ASTEROIDS: CELESTIAL GENESIS",
+        "ui.title": "CELESTIAL GENESIS",
         "ui.start": "START",
         "ui.restart": "RESTART JOURNEY",
         "ui.intro_msg": "The Classic, reimagined by Aron Galdon. Have a safe trip!",
@@ -52,7 +52,7 @@ export const translations = {
         "shape.decagon": "DECAGON"
     },
     es: {
-        "ui.title": "ASTEROIDES: GÉNESIS CELESTIAL",
+        "ui.title": "GÉNESIS CELESTIAL",
         "ui.start": "INICIAR",
         "ui.restart": "REINICIAR VIAJE",
         "ui.intro_msg": "El clásico, reimaginado por Arón Galdón. ¡Buen viaje!",
@@ -104,7 +104,7 @@ export const translations = {
         "shape.decagon": "DECÁGONO"
     },
     ca: {
-        "ui.title": "ASTEROIDES: GÈNESI CELESTIAL",
+        "ui.title": "GÈNESI CELESTIAL",
         "ui.start": "INICIAR",
         "ui.restart": "REINICIAR VIATGE",
         "ui.intro_msg": "El clàssic, reimaginat per Arón Galdón. Bon viatge!",
@@ -154,7 +154,7 @@ export const translations = {
         "shape.decagon": "DECÀGON"
     },
     de: {
-        "ui.title": "ASTEROIDS: CELESTIAL GENESIS",
+        "ui.title": "CELESTIAL GENESIS",
         "ui.start": "START",
         "ui.restart": "REISE NEU STARTEN",
         "ui.intro_msg": "Der Klassiker, neu interpretiert von Aron Galdon. Gute Reise!",
@@ -204,7 +204,7 @@ export const translations = {
         "shape.decagon": "ZEHNECK"
     },
     ja: {
-        "ui.title": "アステロイド：セレスティアル・ジェネシス",
+        "ui.title": "セレスティアル・ジェネシス",
         "ui.start": "スタート",
         "ui.restart": "旅を再開する",
         "ui.intro_msg": "アーロン・ガルドンによる名作の再構築。良い旅を！",
@@ -254,7 +254,7 @@ export const translations = {
         "shape.decagon": "デカゴン"
     },
     zh: {
-        "ui.title": "小行星：天体创世纪",
+        "ui.title": "天体创世纪",
         "ui.start": "开始",
         "ui.restart": "重新开始旅程",
         "ui.intro_msg": "阿隆·加尔东重塑的经典之作。祝您旅途平安！",

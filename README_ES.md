@@ -1,25 +1,21 @@
-# Asteroids: Celestial Genesis 2026
+# Génesis Celestial 2026
 
 [English](README.md) | **Español**
 
 El Clásico, reimaginado por Arón Galdón Ginés.
 
-Una nueva experiencia en el clásico juego de Asteroides. Navega por un universo generado procedimentalmente, sobrevive en medio de batallas espaciales entre planetas, respeta a tus aliados y evoluciona tu nave desde un simple vehículo hasta una potencia cósmica.
+Una nueva experiencia inspirada en juegos clásicos. Navega por un universo generado procedimentalmente, sobrevive en medio de batallas espaciales entre planetas, respeta a tus aliados y evoluciona tu nave desde un simple vehículo hasta una potencia cósmica.
 
 Juego en línea en <https://arongaldon.github.io/asteroids-celestial-genesis/>
 
 ## 🕯️ Honrando la Leyenda: Un Tributo
 
-*Asteroids: Celestial Genesis* es más que un simple juego; es un trabajo hecho con amor dedicado a uno de los pilares más influyentes de la historia de los videojuegos: **Asteroids de Atari (1979)**.
-
-### La Chispa de una Era
-
-Lanzado el 17 de noviembre de 1979, el *Asteroids* original fue concebido por **Lyle Rains** y programado por el legendario **Ed Logg**. No fue solo un éxito; fue un fenómeno cultural que definió la "Edad de Oro" de los salones recreativos (arcades). Fue mucho más allá de sus predecesores al introducir un sofisticado motor de **Gráficos Vectoriales**, que utilizaba haces de electrones brillantes para dibujar líneas geométricas nítidas en lugar de los píxeles cuadrados de la época.
+*Génesis Celestial* está desarrollado desde cero como un trabajo hecho con amor dedicado a los pioneros de la historia de los videojuegos.
 
 ### Destreza Tecnológica
 
 - **Gráficos Vectoriales**: La pantalla "QuadraScan" permitía una velocidad y precisión de rotación increíbles, haciendo que el movimiento de la nave se sintiera fluido y futurista.
-- **Física Newtoniana**: Fue uno de los primeros juegos en implementar la inercia del mundo real. Los jugadores no solo se movían; tenían que gestionar el impulso, una mecánica que sigue siendo el alma central de *Celestial Genesis*.
+- **Física Newtoniana**: Fue uno de los primeros juegos en implementar la inercia del mundo real. Los jugadores no solo se movían; tenían que gestionar el impulso, una mecánica que sigue siendo el alma central de *Génesis Celestial*.
 - **Envolvimiento del Mundo (World Wrap)**: Pionero en la mecánica de "envolvimiento de pantalla", donde salir por la parte superior de la pantalla te devolvía por la parte inferior, creando un campo de juego infinito y claustrofóbico.
 
 ### Un Legado Duradero
@@ -30,7 +26,7 @@ La máquina original fue tan popular que los operadores de arcade tuvieron que i
 
 ## 🌌 El Lore y La Leyenda
 
-[![La Oscura Leyenda de Asteroids Celestial Genesis en Youtube!](img/victory.png)](https://youtu.be/toK6rD2HH7Q)
+[![La Oscura Leyenda de Génesis Celestial en Youtube!](img/victory.png)](https://youtu.be/toK6rD2HH7Q)
 
 En el año 2026 de la Era Celestial, los cinturones de asteroides del sector de Orión se han convertido en el campo de pruebas definitivo para la supervivencia de la humanidad. En el corazón de esta lucha cósmica se encuentra **Aria**, la piloto más talentosa de la Iniciativa Génesis.
 
@@ -58,7 +54,7 @@ Dentro de los Núcleos de Defensa Aegis, la atmósfera es una mezcla de tensión
 
 Cuando el sistema finalmente se purifica, la reunión de celebración en la cubierta de observación de la estación es la única recompensa que buscan: estar juntos, viendo salir el sol sobre un sistema pacífico por el que tanto lucharon para protegerlo.
 
-¡Disponible el podcast [La Oscura Leyenda de Asteroids Celestial Genesis](<https://youtu.be/toK6rD2HH7Q>) en Youtube!
+¡Disponible el podcast [La Oscura Leyenda de Celestial Genesis](<https://youtu.be/toK6rD2HH7Q>) en Youtube!
 
 ## 🕹️ Controles
 
@@ -161,7 +157,7 @@ A lo largo de tu sesión, encontrarás varios eventos dinámicos:
 
 ## 🏗️ Arquitectura Técnica
 
-*Asteroids: Celestial Genesis* se construye mediante un patrón de módulos orientado a funciones, aprovechando las importaciones modernas de ES6 para mantener una clara separación de responsabilidades. El motor está diseñado para renderizado 2D de alto rendimiento utilizando un enfoque de un solo paso de HTML5 Canvas.
+*Celestial Genesis* se construye mediante un patrón de módulos orientado a funciones, aprovechando las importaciones modernas de ES6 para mantener una clara separación de responsabilidades. El motor está diseñado para renderizado 2D de alto rendimiento utilizando un enfoque de un solo paso de HTML5 Canvas.
 
 ### Sistemas Principales
 

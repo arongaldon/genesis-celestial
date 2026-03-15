@@ -1,20 +1,16 @@
-# Asteroids: Celestial Genesis 2026
+# Celestial Genesis 2026
 
 **English** | [Español](README_ES.md)
 
 The Classic, reimagined by Aron Galdon Gines.
 
-A new experience in the classic Asteroids game. Navigate a procedurally generated universe, survive in the middle of space battles between planets, respect your friends, and evolve your ship from a simple vessel into a cosmic powerhouse.
+A new experience inspired in classic games. Navigate a procedurally generated universe, survive in the middle of space battles between planets, respect your friends, and evolve your ship from a simple vessel into a cosmic powerhouse.
 
 Online game at <https://arongaldon.github.io/asteroids-celestial-genesis/>
 
 ## 🕯️ Honoring the Legend: A Tribute
 
-*Asteroids: Celestial Genesis* is more than just a game; it is a labor of love dedicated to one of the most influential pillars of video game history: **Atari's Asteroids (1979)**.
-
-### The Spark of an Era
-
-Released on November 17, 1979, the original *Asteroids* was conceived by **Lyle Rains** and programmed by the legendary **Ed Logg**. It wasn't just a hit; it was a cultural phenomenon that defined the "Golden Age" of arcades. It moved far beyond its predecessors by introducing a sophisticated **Vector-Graphic** engine, which used glowing electron beams to draw sharp, geometric lines instead of the blocky pixels of the time.
+*Celestial Genesis* is built from scratch as a labor of love dedicated to the pioneers of video game history.
 
 ### Technological Prowess
 
@@ -30,7 +26,7 @@ The original machine was so popular that arcade operators had to install larger 
 
 ### 🌌 The Lore & The Legend
 
-[![The Dark Legend of Asteroids Celestial Genesis on Youtube!](img/victory.png)](https://youtu.be/toK6rD2HH7Q)
+[![The Dark Legend of Celestial Genesis on Youtube!](img/victory.png)](https://youtu.be/toK6rD2HH7Q)
 
 In the year 2026 of the Celestial Age, the asteroid belts of the Orion sector have become the ultimate testing ground for humanity's survival. At the heart of this cosmic struggle is **Aria**, the most gifted pilot of the Genesis Initiative.
 
@@ -58,7 +54,7 @@ Within the Aegis Defense Hubs, the atmosphere is a mix of high-stakes tension an
 
 When the system is finally purified, the celebratory gathering at the station's observation deck is the only reward they seek: standing together, watching the sun rise over a peaceful system they fought so hard to protect.
 
-Podcast available [The Dark Legend of Asteroids Celestial Genesis](<https://youtu.be/toK6rD2HH7Q>) on Youtube!
+Podcast available [The Dark Legend of Celestial Genesis](<https://youtu.be/toK6rD2HH7Q>) on Youtube!
 
 ## Controls
 
@@ -161,7 +157,7 @@ Throughout your session, you will encounter various dynamic events:
 
 ## 🏗️ Technical Architecture
 
-*Asteroids: Celestial Genesis* is built using a functional-oriented module pattern, leveraging modern ES6 imports to maintain a clean separation of concerns. The engine is designed for high-performance 2D rendering using a single-pass HTML5 Canvas approach.
+*Celestial Genesis* is built using a functional-oriented module pattern, leveraging modern ES6 imports to maintain a clean separation of concerns. The engine is designed for high-performance 2D rendering using a single-pass HTML5 Canvas approach.
 
 ### Core Systems
 
