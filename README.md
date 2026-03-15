@@ -6,7 +6,7 @@ The Classic, reimagined by Aron Galdon Gines.
 
 A new experience inspired in classic games. Navigate a procedurally generated universe, survive in the middle of space battles between planets, respect your friends, and evolve your ship from a simple vessel into a cosmic powerhouse.
 
-Online game at <https://arongaldon.github.io/asteroids-celestial-genesis/>
+Online game at <https://arongaldon.github.io/genesis-celestial/>
 
 ## 🕯️ Honoring the Legend: A Tribute
 
