@@ -245,6 +245,9 @@ export function loop() {
     if (homeAttackWarningTimer > 0) homeAttackWarningTimer--;
     if (stationAttackWarningTimer > 0) stationAttackWarningTimer--;
 
+    // Continuous shooting if fire button is held
+    if (State.keys.Space && State.gameRunning) shootLaser();
+
     // Handle Tier 12 transformation
     if (State.playerShip && State.playerShip.transformationTimer > 0) {
         State.playerShip.transformationTimer--;
@@ -1096,6 +1099,10 @@ export function loop() {
             }
         } else {
             // --- ADVANCED SHIP AI ---
+            if (ship === State.playerShip) {
+                // Keep player in the loop for drawing and collisions, but skip all AI/movement logic
+                continue;
+            }
             const distToPlayer = Math.sqrt((State.worldOffsetX - ship.x) * (State.worldOffsetX - ship.x) + (State.worldOffsetY - ship.y) * (State.worldOffsetY - ship.y));
             const tier = Math.floor((ship.score || 0) / SHIP_CONFIG.EVOLUTION_SCORE_STEP);
 
@@ -1215,8 +1222,11 @@ export function loop() {
                     for (let other of State.ships) {
                         if (other === ship || other.type === 'station') continue;
                         let isRival = false;
-                        if (ship.isFriendly && !other.isFriendly) isRival = true;
-                        if (!ship.isFriendly && (other.isFriendly || other.fleetHue !== ship.fleetHue)) isRival = true;
+                        if (ship.fleetHue !== other.fleetHue) {
+                            isRival = true;
+                        } else if (other === State.playerShip || ship === State.playerShip) {
+                            if (State.playerShip.loneWolf) isRival = true;
+                        }
 
                         if (isRival) {
                             let d = Math.sqrt((other.x - ship.x) * (other.x - ship.x) + (other.y - ship.y) * (other.y - ship.y));
@@ -1800,11 +1810,10 @@ export function loop() {
                     if (other === ship) continue;
 
                     let isRival = false;
-                    if (ship.isFriendly) {
-                        if (!other.isFriendly) isRival = true;
-                    } else {
-                        // Enemy State.ships target different fleets AND friendly State.ships
-                        if (other.isFriendly || other.fleetHue !== ship.fleetHue) isRival = true;
+                    if (ship.fleetHue !== other.fleetHue) {
+                        isRival = true;
+                    } else if (other === State.playerShip || ship === State.playerShip) {
+                        if (State.playerShip.loneWolf) isRival = true;
                     }
 
                     if (isRival && (other.type === 'ship' || other.type === 'station')) {

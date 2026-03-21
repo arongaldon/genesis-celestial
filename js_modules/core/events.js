@@ -15,7 +15,10 @@ export function setupInputEvents() {
             return;
         }
 
-        if (e.code === 'Space') shootLaser();
+        if (e.code === 'Space') {
+            State.keys.Space = true;
+            shootLaser();
+        }
 
         // NOTE: The logic for KeyE to create matter has been permanently removed.
 
@@ -44,6 +47,7 @@ export function setupInputEvents() {
         State.keys.Shift = e.shiftKey;
     });
     document.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') State.keys.Space = false;
         if (e.code === 'KeyW' || e.code === 'ArrowUp') State.keys.ArrowUp = false;
         if (e.code === 'KeyS' || e.code === 'ArrowDown') State.keys.ArrowDown = false;
 
@@ -67,12 +71,15 @@ export function setupInputEvents() {
             // Right-click = Thrust (same as ArrowUp / W)
             State.keys.ArrowUp = true;
         } else {
+            State.keys.Space = true;
             shootLaser();
         }
     });
     document.addEventListener('mouseup', (e) => {
         if (e.button === 2) {
             State.keys.ArrowUp = false;
+        } else {
+            State.keys.Space = false;
         }
     });
     document.addEventListener('contextmenu', (e) => {

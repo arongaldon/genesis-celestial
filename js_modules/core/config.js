@@ -1,10 +1,10 @@
 
 export const ASTEROID_CONFIG = {
-   COUNT: 10000,
+   COUNT: 20000,
    INIT_INNER: 10000,
    MAX_ROIDS: 5000,
    MAX_SIZE: 500,
-   MAX_SPEED: 10,
+   MAX_SPEED: 12,
    MIN_SIZE: 50,
    PLANET_DEBRIS: 25,
    SPLIT_OFFSET: 200
@@ -37,7 +37,7 @@ export const PLANET_CONFIG = {
 export const PLAYER_CONFIG = {
    INITIAL_LIVES: 3,
    RELOAD_TIME_MAX: 8,
-   RELOAD_TIME_MS: 130 // ~8 frames at 60fps
+   RELOAD_TIME_MS: 80 // Faster shooting (Reduced from 130)
 };
 
 export const SHIP_CONFIG = {
@@ -49,7 +49,7 @@ export const SHIP_CONFIG = {
    COMBAT_ORBIT_DISTANCE: 340,
    EVOLUTION_SCORE_STEP: 1000,
    FRIENDLY_BLUE_HUE: 210,
-   PLANET_LIMIT: 14,
+   PLANET_LIMIT: 21,
    MAX_SPEED: 100,
    RESISTANCE: 2,
    SEPARATION_DISTANCE: 30,
@@ -70,7 +70,7 @@ export const SCORE_REWARDS = {
 };
 
 export const STATION_CONFIG = {
-   PER_PLANET: 2,
+   PER_PLANET: 3,
    SPAWN_TIMER: 300,
    RESISTANCE: 6
 };
