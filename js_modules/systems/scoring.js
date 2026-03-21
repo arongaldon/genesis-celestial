@@ -102,7 +102,7 @@ export function triggerBetrayal() {
     addScreenMessage(t("game.betrayal"), "#ff0000");
 
     State.ships.forEach(ship => {
-        if (ship.isFriendly) {
+        if (ship !== State.playerShip && ship.isFriendly) {
             ship.isFriendly = false;
             ship.aiState = 'COMBAT';
             ship.fleetHue = 0;

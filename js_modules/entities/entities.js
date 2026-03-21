@@ -32,9 +32,9 @@ export function newPlayerShip() {
         // Weapon Properties (Default for Player)
         bulletSpeed: 25,
         bulletLife: 50,
-        bulletSize: 6,
         type: 'ship',
-        transformationTimer: 0
+        transformationTimer: 0,
+        formationOffset: { x: 0, y: 0 }
     };
 }
 
@@ -237,7 +237,8 @@ export function spawnStation(hostPlanet = null) {
         bulletSpeed: 20,
         bulletSize: 6,
         bulletLife: 50,
-        effectiveR: STATION_R // Use station radius for bullet spawn offset
+        effectiveR: STATION_R, // Use station radius for bullet spawn offset
+        formationOffset: { x: 0, y: 0 }
     });
     State.stationSpawnTimer = STATION_CONFIG.SPAWN_TIMER + Math.random() * STATION_CONFIG.SPAWN_TIMER;
 }
