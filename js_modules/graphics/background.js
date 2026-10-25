@@ -1,48 +1,62 @@
 import { State } from '../core/state.js';
 import { GALAXY_CONFIG, WORLD_BOUNDS } from '../core/config.js';
-import { mulberry32 } from '../utils/utils.js';
+import { dist } from '../utils/utils.js';
 
 export function initBackground() {
     // Resets and populates background layers for parallax
     State.backgroundLayers = { nebulas: [], galaxies: [], starsNear: [], starsMid: [], starsFar: [] };
-    State.ambientFogs = []; // NEW: Reset ambient fog
-    for (let i = 0; i < 6; i++) State.backgroundLayers.nebulas.push({ x: Math.random() * State.width, y: Math.random() * State.height, r: State.width * 0.6, hue: Math.random() * 60 + 200, alpha: 0.1 });
-    const galaxyCount = GALAXY_CONFIG.LIMIT;
-    for (let i = 0; i < galaxyCount; i++) {
+    State.ambientFogs = [];
+
+    for (let i = 0; i < GALAXY_CONFIG.NEBULA_COUNT; i++) {
+        State.backgroundLayers.nebulas.push({
+            x: Math.random() * State.width,
+            y: Math.random() * State.height,
+            r: State.width * 0.6,
+            hue: Math.random() * 60 + 200,
+            alpha: 0.1
+        });
+    }
+
+    const parallaxSpread = WORLD_BOUNDS * 2 * 0.05;
+    for (let i = 0; i < GALAXY_CONFIG.LIMIT; i++) {
         let newGalaxy;
         let attempts = 0;
         let tooClose;
         do {
             newGalaxy = createGalaxy();
-            tooClose = State.backgroundLayers.galaxies.some(g => {
-                const dx = g.x - newGalaxy.x;
-                const dy = g.y - newGalaxy.y;
-                return Math.sqrt(dx * dx + dy * dy) < GALAXY_CONFIG.MIN_DIST;
-            });
+            tooClose = State.backgroundLayers.galaxies.some(g => dist(g.x, g.y, newGalaxy.x, newGalaxy.y) < GALAXY_CONFIG.MIN_DIST);
             attempts++;
         } while (tooClose && attempts < 20);
 
         // Scatter globally across parallax world (0.05 scale)
-        const parallaxSpread = WORLD_BOUNDS * 2 * 0.05;
         newGalaxy.x = State.width / 2 + (Math.random() - 0.5) * parallaxSpread;
         newGalaxy.y = State.height / 2 + (Math.random() - 0.5) * parallaxSpread;
 
         State.backgroundLayers.galaxies.push(newGalaxy);
     }
+
     // Galaxies are pre-sorted during initBackground for performance
     State.backgroundLayers.galaxies.sort((a, b) => a.size - b.size);
-    for (let i = 0; i < 3; i++) State.ambientFogs.push(createAmbientFog()); // NEW: Initial ambient fogs
-    const createStar = () => ({ x: Math.random() * State.width, y: Math.random() * State.height, size: Math.random() * 1.5 + 0.5, alpha: Math.random() * 0.5 + 0.3 });
-    for (let i = 0; i < 20; i++) State.backgroundLayers.starsFar.push(createStar());
-    for (let i = 0; i < 15; i++) State.backgroundLayers.starsMid.push(createStar());
-    for (let i = 0; i < 10; i++) State.backgroundLayers.starsNear.push(createStar());
+
+    for (let i = 0; i < GALAXY_CONFIG.AMBIENT_FOG_COUNT; i++) {
+        State.ambientFogs.push(createAmbientFog());
+    }
+
+    const createStar = () => ({
+        x: Math.random() * State.width,
+        y: Math.random() * State.height,
+        size: Math.random() * 1.5 + 0.5,
+        alpha: Math.random() * 0.5 + 0.3
+    });
+    for (let i = 0; i < GALAXY_CONFIG.STARS_FAR_COUNT; i++) State.backgroundLayers.starsFar.push(createStar());
+    for (let i = 0; i < GALAXY_CONFIG.STARS_MID_COUNT; i++) State.backgroundLayers.starsMid.push(createStar());
+    for (let i = 0; i < GALAXY_CONFIG.STARS_NEAR_COUNT; i++) State.backgroundLayers.starsNear.push(createStar());
 }
 
 export function createGalaxy() {
     const arms = Math.floor(Math.random() * (GALAXY_CONFIG.ARMS_LIMIT - 1)) + 2;
     const squish = 0.2 + Math.random() * 0.8;
-    let sizeRng = Math.random();
-    let size = sizeRng > 0.85 ? (2000 + Math.random() * 2000) : (400 + Math.random() * 1000);
+    const size = Math.random() > 0.85 ? (2000 + Math.random() * 2000) : (400 + Math.random() * 1000);
     const starCount = Math.floor(size * (1.5 + Math.random()));
 
     const hueSeed = Math.random();
@@ -64,7 +78,7 @@ export function createGalaxy() {
 
     for (let i = 0; i < starCount; i++) {
         const distRatio = Math.pow(Math.random(), 2);
-        const dist = distRatio * size;
+        const rDist = distRatio * size;
         const baseAngle = (i % arms) * armSeparation;
         const spiralAngle = distRatio * Math.PI * spiralSwirl;
         const scatter = (Math.random() - 0.5) * (0.2 + distRatio * 0.8);
@@ -76,7 +90,7 @@ export function createGalaxy() {
         const alpha = Math.min(1.0, (1.0 - distRatio) + Math.random() * 0.3);
 
         stars.push({
-            r: dist,
+            r: rDist,
             theta: finalAngle,
             size: starSize,
             alpha,
@@ -94,7 +108,7 @@ export function createGalaxy() {
 
     oCtx.globalCompositeOperation = 'screen';
     const coreRad = size * 0.3;
-    let coreGrad = oCtx.createRadialGradient(center, center, 0, center, center, coreRad);
+    const coreGrad = oCtx.createRadialGradient(center, center, 0, center, center, coreRad);
     coreGrad.addColorStop(0, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${GALAXY_CONFIG.BRIGHTNESS})`);
     coreGrad.addColorStop(0.2, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${GALAXY_CONFIG.BRIGHTNESS * 0.6})`);
     coreGrad.addColorStop(1, `rgba(${edgeColor.r}, ${edgeColor.g}, ${edgeColor.b}, 0)`);

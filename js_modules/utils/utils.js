@@ -1,3 +1,5 @@
+import { t } from './i18n.js';
+
 export class SpatialHash {
     constructor(cellSize) {
         this.cellSize = cellSize;
@@ -43,14 +45,28 @@ export class SpatialHash {
 
 export function mulberry32(a) {
     return function () {
-        var t = a += 0x6D2B79F5;
+        let t = a += 0x6D2B79F5;
         t = Math.imul(t ^ t >>> 15, t | 1);
         t ^= t + Math.imul(t ^ t >>> 7, t | 61);
         return ((t ^ t >>> 14) >>> 0) / 4294967296;
-    }
+    };
 }
 
-import { t } from './i18n.js';
+export function dist(x1, y1, x2, y2) {
+    return Math.hypot(x2 - x1, y2 - y1);
+}
+
+export function normalizeAngle(angle) {
+    if (!isFinite(angle)) return 0;
+    while (angle > Math.PI) angle -= 2 * Math.PI;
+    while (angle <= -Math.PI) angle += 2 * Math.PI;
+    return angle;
+}
+
+export function rotateTowards(currentAngle, targetAngle, responsiveness) {
+    const diff = normalizeAngle(targetAngle - currentAngle);
+    return normalizeAngle(currentAngle + diff * responsiveness);
+}
 
 export function getShapeName(tier) {
     if (tier >= 12) return t("shape.godship");
@@ -58,7 +74,15 @@ export function getShapeName(tier) {
     if (tier === 10) return t("shape.titan");
     if (tier === 9) return t("shape.celestial");
     if (tier === 8) return t("shape.sphere");
-    const shapes = [t("shape.triangle"), t("shape.square"), t("shape.pentagon"), t("shape.hexagon"), t("shape.heptagon"), t("shape.octagon"), t("shape.nonagon"), t("shape.decagon")];
+    const shapes = [
+        t("shape.triangle"),
+        t("shape.square"),
+        t("shape.pentagon"),
+        t("shape.hexagon"),
+        t("shape.heptagon"),
+        t("shape.octagon"),
+        t("shape.nonagon"),
+        t("shape.decagon")
+    ];
     return shapes[Math.min(tier, shapes.length - 1)];
 }
-

@@ -1,4 +1,4 @@
-import { ASTEROID_CONFIG, BOUNDARY_CONFIG, PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FPS, FRICTION, G_CONST, MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE, SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, DOM } from './config.js';
+import { ZOOM_LEVELS } from './config.js';
 
 export const State = {
     width: 0,
@@ -18,15 +18,25 @@ export const State = {
     playerReloadTime: 0,
     lastPlayerShotTime: 0,
     stationSpawnTimer: 0,
-    level: 0,
     homePlanetId: null,
     homePlanetDestroyed: false,
+    lastHomeX: undefined,
+    lastHomeY: undefined,
     screenMessages: [],
     gameRunning: false,
     victoryState: false,
     loopStarted: false,
     inputMode: 'mouse',
-    keys: { ArrowUp: false, ArrowDown: false, Space: false, ArrowLeft: false, ArrowRight: false, KeyA: false, KeyD: false, Shift: false },
+    keys: {
+        ArrowUp: false,
+        ArrowDown: false,
+        Space: false,
+        ArrowLeft: false,
+        ArrowRight: false,
+        KeyA: false,
+        KeyD: false,
+        Shift: false
+    },
     mouse: { x: 0, y: 0 },
     currentZoomIndex: 2,
     RADAR_RANGE: ZOOM_LEVELS ? ZOOM_LEVELS[2] : 3000,

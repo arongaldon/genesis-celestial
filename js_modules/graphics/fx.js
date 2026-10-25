@@ -1,15 +1,16 @@
 import { State } from '../core/state.js';
 import { ASTEROID_CONFIG } from '../core/config.js';
 import { createAsteroid } from '../entities/entities.js';
-import { updateAsteroidCounter } from './render.js';
+import { AudioEngine } from '../audio/audio.js';
 
 export function createExplosion(vpX, vpY, n, color = 'white', sizeBase = 1, type = 'spark') {
     // Hard cap to prevent FPS drops during massive chains
     if ((type === 'spark' || type === 'smoke') && State.particles.length > 600) return;
 
+    const pWorldX = vpX - State.width / 2 + State.worldOffsetX;
+    const pWorldY = vpY - State.height / 2 + State.worldOffsetY;
+
     for (let i = 0; i < n; i++) {
-        const pWorldX = vpX - State.width / 2 + State.worldOffsetX;
-        const pWorldY = vpY - State.height / 2 + State.worldOffsetY;
         let life = 30 + Math.random() * 20;
         let speed = 10;
         if (type === 'debris') { life = 60 + Math.random() * 40; speed = 3; }
@@ -27,6 +28,16 @@ export function createExplosion(vpX, vpY, n, color = 'white', sizeBase = 1, type
             type
         });
     }
+}
+
+export function createPlanetExplosionFX(worldX, worldY, z = 0) {
+    const vpX = worldX - State.worldOffsetX + State.width / 2;
+    const vpY = worldY - State.worldOffsetY + State.height / 2;
+    createExplosion(vpX, vpY, 150, '#ffaa00', 8, 'flame');
+    createExplosion(vpX, vpY, 100, '#ff4400', 12, 'flame');
+    createExplosion(vpX, vpY, 80, '#550000', 15, 'smoke');
+    createExplosion(vpX, vpY, 50, '#ffff00', 4, 'spark');
+    AudioEngine.playPlanetExplosion(worldX, worldY, z);
 }
 
 export function createShockwave(worldX, worldY) {
@@ -65,5 +76,4 @@ export function createExplosionDebris(cx, cy, count, isHot = false) {
 
         State.roids.push(roid);
     }
-    updateAsteroidCounter();
 }

@@ -309,34 +309,22 @@ let currentLanguage = 'en';
 
 export function initI18n() {
     // Detect language from browser
-    const lang = navigator.language ? navigator.language.toLowerCase() : '';
-    if (lang.startsWith('es')) {
-        currentLanguage = 'es';
-    } else if (lang.startsWith('ca')) {
-        currentLanguage = 'ca';
-    } else if (lang.startsWith('de')) {
-        currentLanguage = 'de';
-    } else if (lang.startsWith('ja')) {
-        currentLanguage = 'ja';
-    } else if (lang.startsWith('zh')) {
-        currentLanguage = 'zh';
-    } else {
-        currentLanguage = 'en';
-    }
+    const lang = navigator.language ? navigator.language.toLowerCase().split('-')[0] : 'en';
+    currentLanguage = translations[lang] ? lang : 'en';
 
     // Translate DOM elements marked with data-i18n
     const elements = document.querySelectorAll('[data-i18n]');
     elements.forEach(el => {
         const key = el.getAttribute('data-i18n');
-        if (translations[currentLanguage][key]) {
-            // Note: Since some might have inner HTML, we check if they're text containers
-            el.innerText = translations[currentLanguage][key];
+        const translated = translations[currentLanguage][key] || translations.en[key];
+        if (translated) {
+            el.innerText = translated;
         }
     });
 }
 
 export function t(key, params = {}) {
-    let text = translations[currentLanguage][key] || key;
+    let text = translations[currentLanguage][key] || translations.en[key] || key;
 
     // Replace parameters like {name}, {seconds}
     for (const [pKey, pVal] of Object.entries(params)) {
