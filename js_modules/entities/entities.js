@@ -228,8 +228,11 @@ export function spawnStation(hostPlanet = null) {
     const startY = hostPlanet.y + Math.sin(orbitAngle) * orbitDistance;
 
     const friendly = State.playerShip.loneWolf === false && State.homePlanetId !== null && hostPlanet.id === State.homePlanetId;
+    const planetHue = hostPlanet.textureData && hostPlanet.textureData.fleetHue !== undefined
+        ? hostPlanet.textureData.fleetHue
+        : (Math.floor(Math.random() * 260) + 260) % 360;
 
-    State.ships.push({
+    const station = {
         type: 'station',
         x: startX,
         y: startY,
@@ -246,7 +249,7 @@ export function spawnStation(hostPlanet = null) {
         orbitDistance,
         orbitAngle,
         orbitSpeed: (Math.random() > 0.5 ? 1 : -1) * STATION_CONFIG.ORBIT_SPEED,
-        fleetHue: friendly ? SHIP_CONFIG.FRIENDLY_BLUE_HUE : (Math.floor(Math.random() * 260) + 260) % 360, // Avoid blue (160-260)
+        fleetHue: friendly ? SHIP_CONFIG.FRIENDLY_BLUE_HUE : planetHue,
         blinkNum: 60,
         z: 0,
         hostPlanetId: hostPlanet.id,
@@ -256,11 +259,13 @@ export function spawnStation(hostPlanet = null) {
         bulletLife: 50,
         effectiveR: stationR,
         formationOffset: { x: 0, y: 0 }
-    });
+    };
+    State.ships.push(station);
     State.stationSpawnTimer = STATION_CONFIG.SPAWN_TIMER + Math.random() * STATION_CONFIG.SPAWN_TIMER;
+    return station;
 }
 
-export function spawnShipsSquad(station) {
+export function spawnShipsSquad(station, minTier = 0) {
     const currentFactionShips = State.ships.filter(
         en => en.type === 'ship' && en.homeStation && en.homeStation.hostPlanetId === station.hostPlanetId
     ).length;
@@ -268,9 +273,12 @@ export function spawnShipsSquad(station) {
 
     if (spawnCount <= 0) return;
 
+    const baseTier = Math.max(minTier, (station.hostPlanet && station.hostPlanet.initialEnemyTier) || 0);
+
     for (let i = 0; i < spawnCount; i++) {
         const spawnDist = station.r * 2.0 + Math.random() * 50;
         const spawnAngle = Math.random() * Math.PI * 2;
+        const shipTier = baseTier > 0 ? Math.max(0, baseTier - (i % 2)) : 0;
 
         State.ships.push({
             a: spawnAngle + Math.PI,
@@ -283,12 +291,12 @@ export function spawnShipsSquad(station) {
             r: SHIP_CONFIG.SIZE / 2,
             reloadTime: 100 + Math.random() * 100,
             role: 'wingman', // Spawns as independent stray
-            score: 0,
+            score: shipTier * SHIP_CONFIG.EVOLUTION_SCORE_STEP,
             shieldHitTimer: 0,
             squadId: null,
             structureHP: SHIP_CONFIG.RESISTANCE,
             thrusting: false,
-            tier: 0,
+            tier: shipTier,
             type: 'ship',
             x: station.x + Math.cos(spawnAngle) * spawnDist,
             xv: station.xv + (Math.random() - 0.5),
@@ -304,21 +312,87 @@ export function spawnShipsSquad(station) {
 }
 
 export function generatePlanetName() {
-    const legendNames = [t("game.home_planet_name"), t("game.planet_name_2"), t("game.planet_name_3")];
+    const legendNames = [t("game.home_planet_name"), ...PLANET_CONFIG.NAMES];
     const presentNames = State.roids.filter(r => r.isPlanet && !r._destroyed).map(r => r.name);
 
     for (const name of legendNames) {
         if (!presentNames.includes(name)) return name;
     }
 
-    return "DEEP SPACE";
+    return `SECTOR-${State.roidCounter}`;
+}
+
+export function spawnDistantPlanet(announce = true) {
+    if (PLANET_CONFIG.LIMIT <= 0) return null;
+    const currentPlanets = State.roids.filter(r => r.isPlanet && !r._destroyed).length;
+    if (currentPlanets >= PLANET_CONFIG.LIMIT) return null;
+
+    const minDist = WORLD_BOUNDS * PLANET_CONFIG.DISTANT_MIN_DIST_FACTOR;
+    const maxDist = WORLD_BOUNDS * PLANET_CONFIG.DISTANT_MAX_DIST_FACTOR;
+
+    let spawnX = 0;
+    let spawnY = 0;
+    let foundSpot = false;
+
+    for (let attempt = 0; attempt < 25; attempt++) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = minDist + Math.random() * (maxDist - minDist);
+        const cx = Math.cos(angle) * distance;
+        const cy = Math.sin(angle) * distance;
+
+        const tooCloseToPlanet = State.roids.some(
+            r => r.isPlanet && !r._destroyed && dist(cx, cy, r.x, r.y) < PLANET_CONFIG.SIZE * 4.5
+        );
+        const tooCloseToPlayer = dist(cx, cy, State.worldOffsetX, State.worldOffsetY) < PLANET_CONFIG.SIZE * 3.0;
+
+        if (!tooCloseToPlanet && !tooCloseToPlayer) {
+            spawnX = cx;
+            spawnY = cy;
+            foundSpot = true;
+            break;
+        }
+    }
+
+    if (!foundSpot) return null;
+
+    const planetRadius = PLANET_CONFIG.SIZE * (0.8 + Math.random() * 0.25);
+    const planet = createAsteroid(spawnX, spawnY, planetRadius, 0);
+    if (!planet.isPlanet) {
+        initializePlanetAttributes(planet);
+    }
+
+    const fleetHue = (Math.floor(Math.random() * 260) + 260) % 360;
+    if (planet.textureData) {
+        planet.textureData.fleetHue = fleetHue;
+    }
+
+    const distRatio = Math.min(1, Math.max(0, (Math.hypot(spawnX, spawnY) - minDist) / Math.max(1, maxDist - minDist)));
+    const tierRange = PLANET_CONFIG.DISTANT_ENEMY_MAX_TIER - PLANET_CONFIG.DISTANT_ENEMY_MIN_TIER;
+    planet.initialEnemyTier = PLANET_CONFIG.DISTANT_ENEMY_MIN_TIER + Math.round(distRatio * tierRange);
+    planet.blinkNum = 90;
+
+    State.roids.unshift(planet);
+
+    const stationCount = Math.floor(Math.random() * STATION_CONFIG.PER_PLANET) + 1;
+    for (let i = 0; i < stationCount; i++) {
+        const station = spawnStation(planet);
+        if (station && i === 0) {
+            spawnShipsSquad(station, planet.initialEnemyTier);
+        }
+    }
+
+    if (announce && State.gameRunning) {
+        addScreenMessage(t("game.distant_planet_detected", { name: planet.name }), "#ff8800");
+    }
+
+    return planet;
 }
 
 export function createWormholes() {
     State.wormholes = [];
     const minDistFromCenter = PLANET_CONFIG.HOME_SPAWN_RANGE * 1.4;
     const maxDistFromCenter = WORLD_BOUNDS * 0.72;
-    const pairHues = [280, 175];
+    const pairHues = [280, 175, 45];
 
     const pickSafePortalCoords = (baseAngle) => {
         for (let attempt = 0; attempt < 20; attempt++) {

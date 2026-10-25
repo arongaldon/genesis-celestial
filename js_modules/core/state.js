@@ -1,4 +1,4 @@
-import { ANOMALY_CONFIG, NEMESIS_CONFIG, ZOOM_LEVELS } from './config.js';
+import { ANOMALY_CONFIG, NEMESIS_CONFIG, PLANET_CONFIG, ZOOM_LEVELS } from './config.js';
 
 export const State = {
     width: 0,
@@ -23,6 +23,7 @@ export const State = {
     },
     activeNemesis: null,
     nemesisSpawnTimer: NEMESIS_CONFIG.FALLBACK_SPAWN_FRAMES,
+    distantPlanetTimer: PLANET_CONFIG.DISTANT_SPAWN_INTERVAL_FRAMES,
     backgroundLayers: { nebulas: [], galaxies: [], starsNear: [], starsMid: [], starsFar: [] },
     playerReloadTime: 0,
     lastPlayerShotTime: 0,

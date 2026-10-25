@@ -30,8 +30,7 @@ export const translations = {
 
         "game.planet_vaporized": "PLANET {name} VAPORIZED",
         "game.home_planet_name": "HOGAR",
-        "game.planet_name_2": "KRYSTA PRIME",
-        "game.planet_name_3": "ASTRA",
+        "game.distant_planet_detected": "🪐 DISTANT WORLD {name} DETECTED — HOSTILE FLEETS MOBILIZING!",
         "game.warn_shoot_home": "That's your home planet!",
         "game.warn_cease_fire": "⚠ WARNING: CEASE FIRE ON ALLIES!",
         "game.warn_home_attack": "⚠ WARNING: HOME PLANET UNDER ATTACK!",
@@ -88,8 +87,7 @@ export const translations = {
 
         "game.planet_vaporized": "PLANETA {name} VAPORIZADO",
         "game.home_planet_name": "HOGAR",
-        "game.planet_name_2": "KRYSTA PRIME",
-        "game.planet_name_3": "ASTRA",
+        "game.distant_planet_detected": "🪐 MUNDO DISTANTE {name} DETECTADO — ¡FLOTAS HOSTILES MOVILIZÁNDOSE!",
         "game.warn_shoot_home": "¡Ese es tu planeta hogar!",
         "game.warn_cease_fire": "⚠ ADVERTENCIA: ¡ALTO EL FUEGO A LOS ALIADOS!",
         "game.warn_home_attack": "⚠ ADVERTENCIA: ¡PLANETA HOGAR BAJO ATAQUE!",
@@ -146,6 +144,7 @@ export const translations = {
 
         "game.planet_vaporized": "PLANETA {name} VAPORITZAT",
         "game.home_planet_name": "LLAR",
+        "game.distant_planet_detected": "🪐 MÓN LLUNYÀ {name} DETECTAT — FLOTES HOSTILS MOBILITZANT-SE!",
         "game.warn_shoot_home": "Aquest és el teu planeta llar!",
         "game.warn_cease_fire": "⚠ ADVERTÈNCIA: ALTO EL FOC ALS ALIATS!",
         "game.warn_home_attack": "⚠ ADVERTÈNCIA: PLANETA LLAR SOTA ATAC!",
@@ -202,6 +201,7 @@ export const translations = {
 
         "game.planet_vaporized": "PLANET {name} VERDAMPFT",
         "game.home_planet_name": "HEIMAT",
+        "game.distant_planet_detected": "🪐 FERNE WELT {name} ENTDECKT — FEINDLICHE FLOTTEN MOBILISIEREN!",
         "game.warn_shoot_home": "Das ist dein Heimatplanet!",
         "game.warn_cease_fire": "⚠ WARNUNG: FEUER AUF ALLIIERTE EINSTELLEN!",
         "game.warn_home_attack": "⚠ WARNUNG: HEIMATPLANET WIRD ANGEGRIFFEN!",
@@ -258,6 +258,7 @@ export const translations = {
 
         "game.planet_vaporized": "惑星 {name} が蒸発した",
         "game.home_planet_name": "ホーム",
+        "game.distant_planet_detected": "🪐 遠方惑星 {name} を検知 — 敵艦隊が集結中！",
         "game.warn_shoot_home": "それはあなたの母星です！",
         "game.warn_cease_fire": "⚠ 警告：味方への射撃をやめよ！",
         "game.warn_home_attack": "⚠ 警告：母星が攻撃を受けている！",
@@ -314,6 +315,7 @@ export const translations = {
 
         "game.planet_vaporized": "行星 {name} 已蒸发",
         "game.home_planet_name": "家园",
+        "game.distant_planet_detected": "🪐 探测到遥远行星 {name} — 敌方舰队正在集结！",
         "game.warn_shoot_home": "那是你的母星！",
         "game.warn_cease_fire": "⚠ 警告：对友军停火！",
         "game.warn_home_attack": "⚠ 警告：母星受到攻击！",

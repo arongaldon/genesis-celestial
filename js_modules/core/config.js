@@ -5,7 +5,7 @@ export const FPS = 60;
 export const FRICTION = 0.99;
 export const G_CONST = 0.9;
 export const MAX_Z_DEPTH = 4.0;
-export const WORLD_BOUNDS = 40000;
+export const WORLD_BOUNDS = 55000;
 
 export const GLOBAL_LIGHT = {
     X: WORLD_BOUNDS * 2, // Distant sun far out of bounds
@@ -18,7 +18,7 @@ export const GLOBAL_LIGHT = {
 export const MIN_DURATION_TAP_TO_MOVE = 200;
 export const SCALE_IN_MOUSE_MODE = 0.72;
 export const SCALE_IN_TOUCH_MODE = 0.36;
-export const ZOOM_LEVELS = Array.from({ length: 14 }, (_, i) => 1500 + (i * 500) + (i * i * 200));
+export const ZOOM_LEVELS = Array.from({ length: 16 }, (_, i) => 1500 + (i * 500) + (i * i * 220));
 
 // ============================================================================
 // WORLD BOUNDARY SETTINGS
@@ -36,22 +36,33 @@ export const BOUNDARY_CONFIG = {
 // ASTEROIDS & PLANETS SETTINGS
 // ============================================================================
 export const ASTEROID_CONFIG = {
-    COUNT: 20000,
-    INIT_INNER: 10000,
-    MAX_ROIDS: 5000,
+    COUNT: 3500,
+    INIT_INNER: 8000,
+    MAX_ROIDS: 4000,
     MAX_SIZE: 500,
     MAX_SPEED: 12,
     MIN_SIZE: 50,
-    PLANET_DEBRIS: 25,
+    PLANET_DEBRIS: 20,
     SPLIT_OFFSET: 200
 };
 
 export const PLANET_CONFIG = {
-    LIMIT: 3,
+    LIMIT: 5,
     SIZE: 2000,
     HP: 70,
     MIN_SQUAD_TO_DAMAGE: 2,
-    HOME_SPAWN_RANGE: 5000
+    HOME_SPAWN_RANGE: 5000,
+    INITIAL_DISTANT_PLANETS: 1,
+    DISTANT_SPAWN_INTERVAL_FRAMES: 3600, // ~60s at 60 FPS
+    DISTANT_MIN_DIST_FACTOR: 0.38,       // Minimum distance from origin (fraction of WORLD_BOUNDS)
+    DISTANT_MAX_DIST_FACTOR: 0.85,       // Maximum distance from origin (fraction of WORLD_BOUNDS)
+    DISTANT_ENEMY_MIN_TIER: 1,
+    DISTANT_ENEMY_MAX_TIER: 5,
+    NAMES: [
+        'KRYSTA PRIME', 'ASTRA', 'VALKOR', 'NYXARA', 'HYPERIA',
+        'SOLARIS V', 'OBSIDIA', 'AETHERIA', 'CHRONOS', 'VORTEXIA',
+        'ELYSIUM', 'TARTARUS'
+    ]
 };
 
 // ============================================================================
@@ -93,7 +104,7 @@ export const SHIP_CONFIG = {
     COMBAT_ORBIT_DISTANCE: 340,
     EVOLUTION_SCORE_STEP: 1000,
     FRIENDLY_BLUE_HUE: 210,
-    PLANET_LIMIT: 21,
+    PLANET_LIMIT: 10,
     MAX_SPEED: 100,
     RESISTANCE: 2,
     SEPARATION_DISTANCE: 30,
@@ -111,7 +122,7 @@ export const SHIP_CONFIG = {
 };
 
 export const STATION_CONFIG = {
-    PER_PLANET: 3,
+    PER_PLANET: 2,
     SPAWN_TIMER: 300,
     RESISTANCE: 6,
     RADIUS: 70,

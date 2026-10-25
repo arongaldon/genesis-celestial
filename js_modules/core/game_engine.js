@@ -8,7 +8,7 @@ import {
 import { State } from './state.js';
 import { dist } from '../utils/utils.js';
 import { AudioEngine } from '../audio/audio.js';
-import { newPlayerShip, createAsteroid, createAsteroidBelt, createWormholes, spawnStation, splitAsteroid } from '../entities/entities.js';
+import { newPlayerShip, createAsteroid, createAsteroidBelt, createWormholes, spawnDistantPlanet, spawnStation, splitAsteroid } from '../entities/entities.js';
 import { initBackground } from '../graphics/background.js';
 import { createExplosion } from '../graphics/fx.js';
 import { increaseShipScore } from '../systems/scoring.js';
@@ -58,6 +58,10 @@ export function createLevel() {
             spawnStation(planet);
         }
     });
+
+    for (let i = 0; i < PLANET_CONFIG.INITIAL_DISTANT_PLANETS; i++) {
+        spawnDistantPlanet(false);
+    }
 
     createWormholes();
     updateHUD();
@@ -386,12 +390,25 @@ function updateAndDrawAsteroidsAndPlanets() {
     DOM.canvasContext.shadowBlur = 0;
     DOM.canvasContext.lineWidth = 1;
 
-    // Sort asteroids from Near to Far (Small Z to Large Z)
-    State.roids.sort((a, b) => {
-        const za = isFinite(a.z) ? a.z : 0;
-        const zb = isFinite(b.z) ? b.z : 0;
-        return za - zb;
-    });
+    const foregroundPlanets = [];
+
+    // 1. Update all planets first and draw distant background planets (z > 0) behind the belt
+    const planets = State.roids.filter(r => r.isPlanet && !r._destroyed && r.r > 0 && !r.vaporized);
+    planets.sort((a, b) => (b.z || 0) - (a.z || 0));
+
+    for (const p of planets) {
+        if (p.z > 0) {
+            const depthScale = 1 / (1 + p.z);
+            const vpX = (p.x - State.worldOffsetX) * depthScale + State.width / 2;
+            const vpY = (p.y - State.worldOffsetY) * depthScale + State.height / 2;
+            drawRoidOrPlanet(p, depthScale, 1, vpX, vpY);
+        } else {
+            foregroundPlanets.push(p);
+        }
+    }
+
+    // 2. Single-pass update and draw for asteroids (no per-frame full-array sort)
+    const playerCollisionBox = (State.playerShip.effectiveR || State.playerShip.r) + ASTEROID_CONFIG.MAX_SIZE + 50;
 
     for (let i = State.roids.length - 1; i >= 0; i--) {
         const r = State.roids[i];
@@ -412,31 +429,42 @@ function updateAndDrawAsteroidsAndPlanets() {
         r.x += r.xv;
         r.y += r.yv;
 
-        const depthScale = r.isPlanet ? 1 / (1 + r.z) : 1;
-        const depthAlpha = 1;
-        const vpX = (r.x - State.worldOffsetX) * depthScale + State.width / 2;
-        const vpY = (r.y - State.worldOffsetY) * depthScale + State.height / 2;
+        if (r.isPlanet) continue;
 
-        drawRoidOrPlanet(r, depthScale, depthAlpha, vpX, vpY);
+        const vpX = (r.x - State.worldOffsetX) + State.width / 2;
+        const vpY = (r.y - State.worldOffsetY) + State.height / 2;
 
-        // Player collision with asteroids
-        if (r.z < 0.5 && !State.playerShip.dead && !r.isPlanet) {
-            const distToPlayer = dist(r.x, r.y, State.worldOffsetX, State.worldOffsetY);
-            if (distToPlayer < (State.playerShip.effectiveR || State.playerShip.r) + r.r * depthScale && r.blinkNum === 0) {
-                if (State.playerShip.tier < SHIP_CONFIG.GODSHIP_TIER) {
-                    hitPlayerShip(1);
-                } else {
-                    increaseShipScore(State.playerShip, SCORE_REWARDS.ASTEROID_DESTROYED);
+        drawRoidOrPlanet(r, 1, 1, vpX, vpY);
+
+        // Fast bounding-box pre-check before computing Euclidean distance for player collision
+        if (r.z < 0.5 && !State.playerShip.dead && r.blinkNum === 0) {
+            const dx = r.x - State.worldOffsetX;
+            const dy = r.y - State.worldOffsetY;
+            if (Math.abs(dx) < playerCollisionBox && Math.abs(dy) < playerCollisionBox) {
+                const distToPlayer = Math.hypot(dx, dy);
+                if (distToPlayer < (State.playerShip.effectiveR || State.playerShip.r) + r.r) {
+                    if (State.playerShip.tier < SHIP_CONFIG.GODSHIP_TIER) {
+                        hitPlayerShip(1);
+                    } else {
+                        increaseShipScore(State.playerShip, SCORE_REWARDS.ASTEROID_DESTROYED);
+                    }
+                    AudioEngine.playSoftThud(r.x, r.y, r.z);
+
+                    createExplosion(vpX, vpY, 15, '#0ff', 2, 'spark');
+                    createExplosion(vpX, vpY, 8, '#fff', 1, 'debris');
+
+                    splitAsteroid(r, 0, 30);
+                    State.roids.splice(i, 1);
                 }
-                AudioEngine.playSoftThud(r.x, r.y, r.z);
-
-                createExplosion(vpX, vpY, 15, '#0ff', 2, 'spark');
-                createExplosion(vpX, vpY, 8, '#fff', 1, 'debris');
-
-                splitAsteroid(r, 0, 30);
-                State.roids.splice(i, 1);
             }
         }
+    }
+
+    // 3. Draw foreground planets (z === 0)
+    for (const p of foregroundPlanets) {
+        const vpX = (p.x - State.worldOffsetX) + State.width / 2;
+        const vpY = (p.y - State.worldOffsetY) + State.height / 2;
+        drawRoidOrPlanet(p, 1, 1, vpX, vpY);
     }
 }
 
@@ -484,6 +512,15 @@ export function loop() {
     if (State.stationSpawnTimer > 0) State.stationSpawnTimer--;
     if (State.stationSpawnTimer <= 0 && State.ships.length < 3) {
         spawnStation();
+    }
+
+    if (State.gameRunning && !State.victoryState) {
+        if (State.distantPlanetTimer > 0) {
+            State.distantPlanetTimer--;
+        } else {
+            spawnDistantPlanet(true);
+            State.distantPlanetTimer = PLANET_CONFIG.DISTANT_SPAWN_INTERVAL_FRAMES;
+        }
     }
 
     const activePlanets = State.roids.filter(r => r.isPlanet && !r._destroyed);
@@ -655,6 +692,7 @@ export function startGame() {
     State.wormholes = [];
     State.activeNemesis = null;
     State.nemesisSpawnTimer = NEMESIS_CONFIG.FALLBACK_SPAWN_FRAMES;
+    State.distantPlanetTimer = PLANET_CONFIG.DISTANT_SPAWN_INTERVAL_FRAMES;
     State.solarStorm = {
         timer: ANOMALY_CONFIG.SOLAR_STORM_INTERVAL_FRAMES,
         warningTimer: 0,

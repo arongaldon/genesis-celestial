@@ -10,8 +10,10 @@ import { t } from '../utils/i18n.js';
 
 // With 1000+ asteroids, smaller cell sizes spread the load better and prevent giant O(N^2) clusters inside individual cells.
 export const spatialGrid = new SpatialHash(1000);
+let physicsFrameTick = 0;
 
 export function updatePhysics() {
+    physicsFrameTick = (physicsFrameTick + 1) & 3;
     const activePlanets = [];
     spatialGrid.clear();
 
@@ -182,6 +184,11 @@ export function updatePhysics() {
     for (let i = 0; i < State.roids.length; i++) {
         const r1 = State.roids[i];
         if (r1.isPlanet || r1.z >= 0.5 || r1._destroyed || r1.blinkNum > 0) continue;
+
+        // Stagger off-screen small asteroid-to-asteroid checks across 4 frames for smooth 60 FPS
+        const isOffScreenFar = Math.abs(r1.x - State.worldOffsetX) > 3500 || Math.abs(r1.y - State.worldOffsetY) > 3500;
+        if (isOffScreenFar && r1.r < ASTEROID_CONFIG.MAX_SIZE && ((i & 3) !== physicsFrameTick)) continue;
+
         const neighbors = spatialGrid.query(r1);
         for (const r2 of neighbors) {
             if (r1.id < r2.id && !r2.isPlanet && !r2._destroyed) {

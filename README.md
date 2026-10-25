@@ -109,10 +109,11 @@ Navigation in *Celestial Genesis* isn't just about engines. Approaching a planet
 
 ## 🪐 The Living Universe
 
-### Procedural Planets
+### Procedural Planets & Distant Frontier Worlds
 
 Every planet in the galaxy is unique. Using high-performance procedural generation, planets feature individual names, distinct ocean/landmass color palettes, and unique topography.
 
+- **Distant Frontier Planets**: As time passes across the vast `55,000`-unit sector, new distant worlds (**Valkor**, **Nyxara**, **Hyperia**, **Solaris V**, **Obsidia**, and more) emerge in the outer rim (up to 5 active worlds), bringing hostile orbital stations and pre-evolved enemy fleets (**Tiers 1–5**) that mobilize from deep space.
 - **Planet Birth**: When giant asteroids collide and merge, they can promote into a brand-new planet if the stellar limit hasn't been reached.
 - **Planet Death**: Planets are not invincible. Massive collisions with other planets or sustained enemy attacks can shatter them into "Hot Debris" fields, permanently altering the neighborhood.
 

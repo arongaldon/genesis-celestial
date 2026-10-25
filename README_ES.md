@@ -109,10 +109,11 @@ La navegación en *Celestial Genesis* no se trata solo de motores. Aproximarse a
 
 ## 🪐 El Universo Viviente
 
-### Planetas Procedimentales
+### Planetas Procedimentales y Mundos Fronterizos Distantes
 
 Cada planeta de la galaxia es único. Utilizando generación procedimental de alto rendimiento, los planetas presentan nombres individuales, paletas de colores de océanos y masas de tierra distintas, y una topografía única.
 
+- **Mundos Fronterizos Distantes**: A medida que avanza el tiempo en el vasto sector de `55.000` unidades, nuevos mundos distantes (**Valkor**, **Nyxara**, **Hyperia**, **Solaris V**, **Obsidia** y más) emergen en el borde exterior (hasta 5 mundos activos), desplegando estaciones orbitales hostiles y flotas enemigas pre-evolucionadas (**Tiers 1–5**) que se movilizan desde el espacio profundo.
 - **Nacimiento de Planetas**: Cuando asteroides gigantes colisionan y se fusionan, pueden ascender a un nuevo planeta si no se ha alcanzado el límite estelar.
 - **Muerte de Planetas**: Los planetas no son invencibles. Las colisiones masivas con otros planetas o los ataques enemigos sostenidos pueden fragmentarlos en campos de "Escombros Calientes", alterando permanentemente el vecindario.
 

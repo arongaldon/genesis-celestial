@@ -867,12 +867,12 @@ export function drawRadar() {
 
             const maxRadarDist = State.RADAR_RANGE + size;
             if (Math.abs(dx) > maxRadarDist || Math.abs(dy) > maxRadarDist) {
-                if (type !== 'planet' && type !== 'asteroid' && type !== 'background_planet') return;
+                if (type !== 'planet' && type !== 'background_planet') return;
             }
 
             const d = Math.hypot(dx, dy);
             if (d - size > State.RADAR_RANGE || !isFinite(d)) {
-                if (type !== 'planet' && type !== 'asteroid' && type !== 'background_planet') return;
+                if (type !== 'planet' && type !== 'background_planet') return;
             }
 
             const angle = Math.atan2(dy, dx);
@@ -885,7 +885,7 @@ export function drawRadar() {
 
             if (!isFinite(radarSize)) radarSize = 2;
 
-            if (type !== 'planet' && type !== 'asteroid' && type !== 'background_planet' && radarDist > radarRadius - radarSize) {
+            if (type !== 'planet' && type !== 'background_planet' && radarDist > radarRadius - radarSize) {
                 radarDist = Math.max(0, radarRadius - radarSize - 1);
             }
             if (!isFinite(radarDist)) return;

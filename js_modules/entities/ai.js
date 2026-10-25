@@ -12,6 +12,20 @@ import { t } from '../utils/i18n.js';
 
 let homeAttackWarningTimer = 0;
 let stationAttackWarningTimer = 0;
+let cachedPlanets = [];
+let cachedPlanetsById = new Map();
+
+function refreshPlanetCache() {
+    cachedPlanets = [];
+    cachedPlanetsById.clear();
+    for (let i = 0; i < State.roids.length; i++) {
+        const r = State.roids[i];
+        if (r.isPlanet && !r._destroyed) {
+            cachedPlanets.push(r);
+            cachedPlanetsById.set(r.id, r);
+        }
+    }
+}
 
 export function resetAIWarningTimers() {
     homeAttackWarningTimer = 0;
@@ -52,8 +66,7 @@ export function enemyShoot(e, tx = State.worldOffsetX, ty = State.worldOffsetY) 
     // AI Godships should be extremely careful with their Ring of Power
     if (!isPlayer && tier >= SHIP_CONFIG.GODSHIP_TIER) {
         const SAFETY_RADIUS = 2500;
-        let alliesNear = State.roids.some(r => {
-            if (!r.isPlanet) return false;
+        let alliesNear = cachedPlanets.some(r => {
             const isFriendlyPlanet = (e.isFriendly && r.id === State.homePlanetId) ||
                 (!e.isFriendly && r.textureData && r.textureData.fleetHue === e.fleetHue);
             return isFriendlyPlanet && dist(e.x, e.y, r.x, r.y) < SAFETY_RADIUS;
@@ -126,8 +139,8 @@ export function proactiveCombatScanner(e) {
 
     // 2. SCAN FOR PLANETS
     if (e.isFriendly) {
-        for (const r of State.roids) {
-            if (r.isPlanet && r.z < 0.5 && r.id !== State.homePlanetId && !r._destroyed) {
+        for (const r of cachedPlanets) {
+            if (r.z < 0.5 && r.id !== State.homePlanetId) {
                 if (dist(e.x, e.y, r.x, r.y) < 2000) {
                     enemyShoot(e, r.x, r.y);
                     if (e.reloadTime > 0) return;
@@ -135,17 +148,19 @@ export function proactiveCombatScanner(e) {
             }
         }
     } else if (State.homePlanetId) {
-        const home = State.roids.find(r => r.id === State.homePlanetId);
-        if (home && home.z < 0.5 && !home._destroyed && dist(e.x, e.y, home.x, home.y) < 2500) {
+        const home = cachedPlanetsById.get(State.homePlanetId);
+        if (home && home.z < 0.5 && dist(e.x, e.y, home.x, home.y) < 2500) {
             enemyShoot(e, home.x, home.y);
             if (e.reloadTime > 0) return;
         }
     }
 
+    const nearbyRoids = spatialGrid.query(e);
+
     // 3. DEFEND HOME STATION FROM ASTEROIDS
     if (e.homeStation) {
         const dangerRange = e.homeStation.r * 8.0;
-        for (const r of State.roids) {
+        for (const r of nearbyRoids) {
             if (r.z > 0.5 || r.isPlanet) continue;
             if (dist(e.homeStation.x, e.homeStation.y, r.x, r.y) < dangerRange && dist(e.x, e.y, r.x, r.y) < 2000) {
                 enemyShoot(e, r.x, r.y);
@@ -155,7 +170,7 @@ export function proactiveCombatScanner(e) {
     }
 
     // 4. GENERIC ASTEROID CLEARING
-    for (const r of State.roids) {
+    for (const r of nearbyRoids) {
         if (r.z > 0.5 || r.isPlanet) continue;
         if (dist(e.x, e.y, r.x, r.y) < 1500) {
             enemyShoot(e, r.x, r.y);
@@ -262,7 +277,7 @@ export function applyEvasionForces(ship) {
 
 function updateStationOrbit(station) {
     if (!station.hostPlanetId) return;
-    const host = State.roids.find(r => r.id === station.hostPlanetId);
+    const host = cachedPlanetsById.get(station.hostPlanetId);
     if (!host) {
         station.hostPlanetId = null;
         station.xv = (Math.random() - 0.5) * 0.5;
@@ -339,7 +354,7 @@ function checkAttackWarnings(ship, tier) {
 
     let warnedHome = false;
     if (State.homePlanetId && homeAttackWarningTimer === 0) {
-        const home = State.roids.find(r => r.id === State.homePlanetId);
+        const home = cachedPlanetsById.get(State.homePlanetId);
         if (home && home.z < 0.5 && dist(ship.x, ship.y, home.x, home.y) < 3000) {
             addScreenMessage(t("game.warn_home_attack"), "#ff0000");
             homeAttackWarningTimer = 600;
@@ -371,7 +386,7 @@ function updateSafeZoneHunter(ship) {
     let minThreatDist = Infinity;
 
     if (!ship.isFriendly && State.homePlanetId) {
-        const home = State.roids.find(r => r.id === State.homePlanetId);
+        const home = cachedPlanetsById.get(State.homePlanetId);
         if (home && home.z < 0.5 && !home._destroyed) {
             const d = dist(ship.x, ship.y, home.x, home.y);
             if (d < 5000) {
@@ -416,7 +431,7 @@ function updateSafeZoneHunter(ship) {
     }
 
     if (ship.isFriendly && State.playerShip.tier >= SHIP_CONFIG.GODSHIP_TIER && State.homePlanetId) {
-        const home = State.roids.find(r => r.id === State.homePlanetId);
+        const home = cachedPlanetsById.get(State.homePlanetId);
         if (home) {
             for (const other of State.ships) {
                 if (!other.isFriendly && other.type !== 'station' && dist(other.x, other.y, home.x, home.y) < 3000) {
@@ -439,7 +454,7 @@ function updateSafeZoneHunter(ship) {
 
 function updateWingmanRetreat(ship) {
     if (!ship.isFriendly || State.playerShip.tier < SHIP_CONFIG.GODSHIP_TIER || !State.homePlanetId) return false;
-    const home = State.roids.find(r => r.id === State.homePlanetId);
+    const home = cachedPlanetsById.get(State.homePlanetId);
     if (!home) return false;
 
     const dx = home.x - ship.x;
@@ -465,7 +480,8 @@ function updateWingmanRetreat(ship) {
         let nearestThreat = null;
         let minThreatDist = Infinity;
 
-        for (const r of State.roids) {
+        const nearbyRoids = spatialGrid.query(ship);
+        for (const r of nearbyRoids) {
             if (r.z > 0.5 || r.isPlanet) continue;
             if (dist(home.x, home.y, r.x, r.y) < home.r * 8.0) {
                 const distToShip = dist(ship.x, ship.y, r.x, r.y);
@@ -915,6 +931,7 @@ function updateCombatAI(ship) {
 }
 
 export function updateAllShipsAndStations(hitPlayerShip) {
+    refreshPlanetCache();
     const shipsToDraw = [];
 
     for (let i = State.ships.length - 1; i >= 0; i--) {
@@ -923,12 +940,12 @@ export function updateAllShipsAndStations(hitPlayerShip) {
         if (!ship.vaporized && ship.structureHP > 0) {
             let factionPlanetDestroyed = false;
             if (ship.type === 'station' && ship.hostPlanetId) {
-                if (!State.roids.some(r => r.id === ship.hostPlanetId && r.isPlanet)) factionPlanetDestroyed = true;
+                if (!cachedPlanetsById.has(ship.hostPlanetId)) factionPlanetDestroyed = true;
             } else if (ship.type === 'ship' && ship.homeStation && ship.homeStation.hostPlanetId) {
-                if (!State.roids.some(r => r.id === ship.homeStation.hostPlanetId && r.isPlanet)) factionPlanetDestroyed = true;
+                if (!cachedPlanetsById.has(ship.homeStation.hostPlanetId)) factionPlanetDestroyed = true;
             }
             if (ship.isFriendly && State.homePlanetId) {
-                if (!State.roids.some(r => r.id === State.homePlanetId && r.isPlanet)) factionPlanetDestroyed = true;
+                if (!cachedPlanetsById.has(State.homePlanetId)) factionPlanetDestroyed = true;
             }
 
             if (factionPlanetDestroyed) {
