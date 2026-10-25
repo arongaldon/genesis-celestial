@@ -1,4 +1,4 @@
-import { ZOOM_LEVELS } from './config.js';
+import { ANOMALY_CONFIG, NEMESIS_CONFIG, ZOOM_LEVELS } from './config.js';
 
 export const State = {
     width: 0,
@@ -14,6 +14,15 @@ export const State = {
     particles: [],
     shockwaves: [],
     ambientFogs: [],
+    wormholes: [],
+    solarStorm: {
+        timer: ANOMALY_CONFIG.SOLAR_STORM_INTERVAL_FRAMES,
+        warningTimer: 0,
+        activeTimer: 0,
+        playerSheltered: false
+    },
+    activeNemesis: null,
+    nemesisSpawnTimer: NEMESIS_CONFIG.FALLBACK_SPAWN_FRAMES,
     backgroundLayers: { nebulas: [], galaxies: [], starsNear: [], starsMid: [], starsFar: [] },
     playerReloadTime: 0,
     lastPlayerShotTime: 0,

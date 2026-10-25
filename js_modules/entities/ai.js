@@ -1,7 +1,7 @@
-import { ASTEROID_CONFIG, BOUNDARY_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, WORLD_BOUNDS } from '../core/config.js';
+import { ASTEROID_CONFIG, BOUNDARY_CONFIG, NEMESIS_CONFIG, SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, WORLD_BOUNDS } from '../core/config.js';
 import { State } from '../core/state.js';
 import { AudioEngine } from '../audio/audio.js';
-import { createSquadSlots, spawnShipsSquad, splitAsteroid } from './entities.js';
+import { createSquadSlots, promoteToNemesis, spawnShipsSquad, splitAsteroid } from './entities.js';
 import { createExplosion } from '../graphics/fx.js';
 import { addScreenMessage } from '../graphics/render.js';
 import { destroyShipEntity, fireEntityWeapon } from '../systems/combat.js';
@@ -21,6 +21,28 @@ export function resetAIWarningTimers() {
 export function tickAIWarningTimers() {
     if (homeAttackWarningTimer > 0) homeAttackWarningTimer--;
     if (stationAttackWarningTimer > 0) stationAttackWarningTimer--;
+
+    if (State.activeNemesis && (State.activeNemesis.dead || !State.ships.includes(State.activeNemesis) || State.activeNemesis.isFriendly)) {
+        State.activeNemesis = null;
+    }
+
+    if (!State.activeNemesis && State.gameRunning && !State.victoryState) {
+        State.nemesisSpawnTimer--;
+        if (State.nemesisSpawnTimer <= 0) {
+            let bestCandidate = null;
+            let highestScore = -1;
+            for (const s of State.ships) {
+                if (s.type === 'ship' && !s.isFriendly && !s.dead && (s.score || 0) > highestScore) {
+                    highestScore = s.score || 0;
+                    bestCandidate = s;
+                }
+            }
+            if (bestCandidate) {
+                promoteToNemesis(bestCandidate);
+            }
+            State.nemesisSpawnTimer = NEMESIS_CONFIG.FALLBACK_SPAWN_FRAMES;
+        }
+    }
 }
 
 export function enemyShoot(e, tx = State.worldOffsetX, ty = State.worldOffsetY) {
@@ -1023,6 +1045,10 @@ export function updateAllShipsAndStations(hitPlayerShip) {
             const distToPlayer = dist(ship.x, ship.y, State.worldOffsetX, State.worldOffsetY);
             const tier = getShipTier(ship);
 
+            if (!ship.isFriendly && !State.activeNemesis && tier >= NEMESIS_CONFIG.MIN_TIER) {
+                promoteToNemesis(ship);
+            }
+
             if (tier >= SHIP_CONFIG.GODSHIP_TIER) {
                 if (ship.leaderRef) {
                     if (ship.leaderRef.squadSlots) {
@@ -1041,6 +1067,8 @@ export function updateAllShipsAndStations(hitPlayerShip) {
                     ship.role = 'stray';
                 }
                 ship.aiState = 'SAFE_ZONE_HUNTER';
+            } else if (ship.isNemesis) {
+                ship.aiState = (distToPlayer < SHIP_CONFIG.SIGHT_RANGE * 1.5 && !State.playerShip.dead) ? 'COMBAT' : 'SAFE_ZONE_HUNTER';
             } else if (!ship.isFriendly && distToPlayer < SHIP_CONFIG.SIGHT_RANGE && !State.playerShip.dead) {
                 ship.aiState = 'COMBAT';
             } else if (distToPlayer > SHIP_CONFIG.SIGHT_RANGE * 1.5 && ship.aiState === 'COMBAT') {
@@ -1077,6 +1105,9 @@ export function updateAllShipsAndStations(hitPlayerShip) {
 
             applyEvasionForces(ship);
             ship.reloadTime--;
+            if (State.solarStorm.activeTimer > 0 || ship.isNemesis) {
+                ship.reloadTime--;
+            }
         }
 
         // Player collision with enemy ship/station

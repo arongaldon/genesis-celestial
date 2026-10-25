@@ -1,10 +1,12 @@
 import { State } from '../core/state.js';
 import { SpatialHash, dist } from '../utils/utils.js';
-import { ASTEROID_CONFIG, BOUNDARY_CONFIG, PLANET_CONFIG, G_CONST, MAX_Z_DEPTH, WORLD_BOUNDS } from '../core/config.js';
+import { ANOMALY_CONFIG, ASTEROID_CONFIG, BOUNDARY_CONFIG, GLOBAL_LIGHT, PLANET_CONFIG, G_CONST, MAX_Z_DEPTH, WORLD_BOUNDS } from '../core/config.js';
 import { initializePlanetAttributes, spawnStation, splitAsteroid } from '../entities/entities.js';
 import { createExplosion, createExplosionDebris, createPlanetExplosionFX, createShockwave } from '../graphics/fx.js';
+import { addScreenMessage } from '../graphics/render.js';
 import { AudioEngine } from '../audio/audio.js';
 import { triggerHomePlanetLost } from '../core/game_engine.js';
+import { t } from '../utils/i18n.js';
 
 // With 1000+ asteroids, smaller cell sizes spread the load better and prevent giant O(N^2) clusters inside individual cells.
 export const spatialGrid = new SpatialHash(1000);
@@ -374,6 +376,183 @@ export function resolveInteraction(r1, r2) {
             r1.r = Math.hypot(r1.r, r2.r) * 1.05;
             AudioEngine.playSoftThud(midX, midY, r1.z);
             r2._destroyed = true;
+        }
+    }
+}
+
+export function isInPlanetaryShadow(worldX, worldY) {
+    for (let i = 0; i < State.roids.length; i++) {
+        const r = State.roids[i];
+        if (!r.isPlanet || r.z >= 0.5 || r._destroyed) continue;
+
+        const lx = r.x - GLOBAL_LIGHT.X;
+        const ly = r.y - GLOBAL_LIGHT.Y;
+        const lDist = Math.max(1, Math.hypot(lx, ly));
+        const dirX = lx / lDist;
+        const dirY = ly / lDist;
+
+        const px = worldX - r.x;
+        const py = worldY - r.y;
+        const along = px * dirX + py * dirY;
+        const perp = Math.abs(px * (-dirY) + py * dirX);
+
+        if (along > 0 && along < r.r * 3.5 && perp < r.r * 0.95) {
+            return true;
+        }
+    }
+    return false;
+}
+
+export function updateAnomalies() {
+    if (!State.gameRunning) return;
+
+    // --- 1. WORMHOLE PORTALS ---
+    if (State.playerShip && State.playerShip.teleportCooldown > 0) {
+        State.playerShip.teleportCooldown--;
+    }
+
+    for (const w of State.wormholes) {
+        w.angle += 0.03;
+        const partner = w.partner;
+        if (!partner) continue;
+
+        // Player interaction with wormhole
+        if (State.playerShip && !State.playerShip.dead) {
+            const dx = w.x - State.worldOffsetX;
+            const dy = w.y - State.worldOffsetY;
+            const d = Math.hypot(dx, dy);
+
+            if (d < ANOMALY_CONFIG.WORMHOLE_PULL_RANGE && d > 1) {
+                const pull = (1 - d / ANOMALY_CONFIG.WORMHOLE_PULL_RANGE) * 0.35;
+                const tangent = Math.atan2(dy, dx) + Math.PI / 3;
+                State.velocity.x += Math.cos(tangent) * pull;
+                State.velocity.y += Math.sin(tangent) * pull;
+            }
+
+            if (d < w.r && (!State.playerShip.teleportCooldown || State.playerShip.teleportCooldown <= 0)) {
+                const exitAngle = Math.atan2(State.velocity.y, State.velocity.x);
+                State.worldOffsetX = partner.x + Math.cos(exitAngle) * (partner.r * 1.3);
+                State.worldOffsetY = partner.y + Math.sin(exitAngle) * (partner.r * 1.3);
+                State.playerShip.teleportCooldown = ANOMALY_CONFIG.WORMHOLE_COOLDOWN_FRAMES;
+                State.playerShip.blinkNum = Math.max(State.playerShip.blinkNum, 20);
+
+                createExplosion(State.width / 2, State.height / 2, 45, `hsl(${partner.hue}, 100%, 70%)`, 4, 'spark');
+                createShockwave(State.worldOffsetX, State.worldOffsetY);
+                AudioEngine.playWarp(State.worldOffsetX, State.worldOffsetY);
+                addScreenMessage(t("game.wormhole_jump"), `hsl(${partner.hue}, 100%, 75%)`);
+            }
+        }
+
+        // AI Ships interaction with wormhole
+        for (const s of State.ships) {
+            if (s === State.playerShip || s.type === 'station' || s.dead) continue;
+            if (s.teleportCooldown > 0) s.teleportCooldown--;
+
+            const d = dist(s.x, s.y, w.x, w.y);
+            if (d < w.r && (!s.teleportCooldown || s.teleportCooldown <= 0)) {
+                const exitAngle = Math.atan2(s.yv, s.xv);
+                s.x = partner.x + Math.cos(exitAngle) * (partner.r * 1.3);
+                s.y = partner.y + Math.sin(exitAngle) * (partner.r * 1.3);
+                s.teleportCooldown = ANOMALY_CONFIG.WORMHOLE_COOLDOWN_FRAMES;
+                AudioEngine.playWarp(s.x, s.y);
+            }
+        }
+
+        // Asteroids interaction with wormhole (via spatialGrid)
+        const nearbyRoids = spatialGrid.query(w);
+        for (const r of nearbyRoids) {
+            if (r.isPlanet || r._destroyed || r.z > 0.5) continue;
+            if (r.teleportCooldown > 0) r.teleportCooldown--;
+
+            const dx = w.x - r.x;
+            const dy = w.y - r.y;
+            const d = Math.hypot(dx, dy);
+            if (d < ANOMALY_CONFIG.WORMHOLE_PULL_RANGE && d > 1) {
+                const pull = (1 - d / ANOMALY_CONFIG.WORMHOLE_PULL_RANGE) * 0.15;
+                r.xv += (dx / d) * pull;
+                r.yv += (dy / d) * pull;
+            }
+            if (d < w.r && (!r.teleportCooldown || r.teleportCooldown <= 0)) {
+                const exitAngle = Math.atan2(r.yv, r.xv);
+                r.x = partner.x + Math.cos(exitAngle) * (partner.r + r.r + 40);
+                r.y = partner.y + Math.sin(exitAngle) * (partner.r + r.r + 40);
+                r.teleportCooldown = ANOMALY_CONFIG.WORMHOLE_COOLDOWN_FRAMES;
+                r.blinkNum = 30;
+            }
+        }
+
+        // Bullets teleportation
+        const teleportBullets = (list) => {
+            for (const b of list) {
+                if (b.teleportCooldown > 0) {
+                    b.teleportCooldown--;
+                    continue;
+                }
+                if (dist(b.x, b.y, w.x, w.y) < w.r) {
+                    const exitAngle = Math.atan2(b.yv, b.xv);
+                    b.x = partner.x + Math.cos(exitAngle) * (partner.r + 20);
+                    b.y = partner.y + Math.sin(exitAngle) * (partner.r + 20);
+                    b.teleportCooldown = 30;
+                }
+            }
+        };
+        teleportBullets(State.playerShipBullets);
+        teleportBullets(State.enemyShipBullets);
+    }
+
+    // --- 2. SOLAR FLARE STORMS ---
+    const storm = State.solarStorm;
+    if (storm.warningTimer > 0) {
+        storm.warningTimer--;
+        if (storm.warningTimer === 0) {
+            storm.activeTimer = ANOMALY_CONFIG.SOLAR_STORM_DURATION_FRAMES;
+            addScreenMessage(t("game.solar_storm_active"), "#ffcc00");
+            if (AudioEngine.ctx) {
+                AudioEngine.playSolarWind(AudioEngine.ctx.currentTime, 6.0);
+            }
+        }
+    } else if (storm.activeTimer > 0) {
+        storm.activeTimer--;
+
+        const windAngle = Math.atan2(-GLOBAL_LIGHT.Y, -GLOBAL_LIGHT.X);
+        const windForceX = Math.cos(windAngle) * ANOMALY_CONFIG.SOLAR_STORM_PUSH_FORCE;
+        const windForceY = Math.sin(windAngle) * ANOMALY_CONFIG.SOLAR_STORM_PUSH_FORCE;
+
+        if (State.playerShip && !State.playerShip.dead) {
+            const wasSheltered = storm.playerSheltered;
+            storm.playerSheltered = isInPlanetaryShadow(State.worldOffsetX, State.worldOffsetY);
+
+            if (storm.playerSheltered) {
+                State.playerShip.shield = Math.min(State.playerShip.maxShield, State.playerShip.shield + 0.3);
+                if (!wasSheltered) {
+                    addScreenMessage(t("game.solar_storm_sheltered"), "#00ffaa");
+                }
+            } else {
+                State.velocity.x += windForceX;
+                State.velocity.y += windForceY;
+            }
+        }
+
+        for (const s of State.ships) {
+            if (s === State.playerShip || s.type === 'station' || s.dead) continue;
+            if (!isInPlanetaryShadow(s.x, s.y)) {
+                s.xv += windForceX * 0.6;
+                s.yv += windForceY * 0.6;
+            }
+        }
+
+        if (storm.activeTimer === 0) {
+            storm.timer = ANOMALY_CONFIG.SOLAR_STORM_INTERVAL_FRAMES;
+            storm.playerSheltered = false;
+        }
+    } else {
+        storm.timer--;
+        if (storm.timer <= 0) {
+            storm.warningTimer = ANOMALY_CONFIG.SOLAR_STORM_WARNING_FRAMES;
+            addScreenMessage(t("game.solar_storm_warning"), "#ffaa00");
+            if (AudioEngine.ctx) {
+                AudioEngine.playSolarWind(AudioEngine.ctx.currentTime, 3.0);
+            }
         }
     }
 }

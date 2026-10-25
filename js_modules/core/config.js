@@ -128,6 +128,29 @@ export const SCORE_REWARDS = {
 };
 
 // ============================================================================
+// COSMIC ANOMALIES & NEMESIS BOSS SETTINGS
+// ============================================================================
+export const ANOMALY_CONFIG = {
+    WORMHOLE_PAIRS: 2,
+    WORMHOLE_RADIUS: 180,
+    WORMHOLE_PULL_RANGE: 900,
+    WORMHOLE_COOLDOWN_FRAMES: 90,
+    SOLAR_STORM_INTERVAL_FRAMES: 3600, // ~60s at 60 FPS
+    SOLAR_STORM_WARNING_FRAMES: 180,   // 3s warning before impact
+    SOLAR_STORM_DURATION_FRAMES: 480,  // 8s active solar storm
+    SOLAR_STORM_PUSH_FORCE: 0.12
+};
+
+export const NEMESIS_CONFIG = {
+    MIN_TIER: 8,
+    FALLBACK_SPAWN_FRAMES: 3600, // Promote strongest enemy after ~60s if none reached MIN_TIER yet
+    HP_MULTIPLIER: 4,
+    SCORE_REWARD: 2500,
+    HUE: 345,
+    NAMES: ['VALERIUS', 'KAELEN', 'NYX', 'VEX', 'MOROS']
+};
+
+// ============================================================================
 // AUDIO SETTINGS
 // ============================================================================
 export const AUDIO_CONFIG = {

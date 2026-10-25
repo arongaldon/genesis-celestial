@@ -18,9 +18,13 @@ export function shootLaser() {
     if (!State.gameRunning || State.playerShip.dead || State.victoryState) return;
 
     const now = performance.now();
-    if (now - State.lastPlayerShotTime < PLAYER_CONFIG.RELOAD_TIME_MS) return;
+    const reloadMs = State.solarStorm.activeTimer > 0
+        ? PLAYER_CONFIG.RELOAD_TIME_MS * 0.5
+        : PLAYER_CONFIG.RELOAD_TIME_MS;
+
+    if (now - State.lastPlayerShotTime < reloadMs) return;
 
     State.lastPlayerShotTime = now;
-    State.playerReloadTime = PLAYER_CONFIG.RELOAD_TIME_MAX; // Still sets frame-based one for generic compatibility if needed
+    State.playerReloadTime = PLAYER_CONFIG.RELOAD_TIME_MAX;
     fireEntityWeapon(State.playerShip, State.playerShipBullets, false);
 }

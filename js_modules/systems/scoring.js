@@ -1,4 +1,4 @@
-import { SHIP_CONFIG, SCORE_REWARDS, ASTEROID_CONFIG, PLANET_CONFIG } from '../core/config.js';
+import { SHIP_CONFIG, SCORE_REWARDS, ASTEROID_CONFIG, PLANET_CONFIG, NEMESIS_CONFIG } from '../core/config.js';
 import { State } from '../core/state.js';
 import { addScreenMessage, drawLives } from '../graphics/render.js';
 import { t } from '../utils/i18n.js';
@@ -68,6 +68,21 @@ export function increaseShipScore(ship, reward) {
 }
 
 export function onShipDestroyed(ship, killerShip = null) {
+    if (ship && ship.isNemesis) {
+        State.activeNemesis = null;
+        State.nemesisSpawnTimer = NEMESIS_CONFIG.FALLBACK_SPAWN_FRAMES;
+
+        if (killerShip === State.playerShip || (killerShip && killerShip.isFriendly)) {
+            increaseShipScore(State.playerShip, NEMESIS_CONFIG.SCORE_REWARD);
+            State.playerShip.lives++;
+            drawLives();
+            State.playerShip.structureHP = SHIP_CONFIG.RESISTANCE;
+            State.playerShip.shield = State.playerShip.maxShield;
+            addScreenMessage(t("game.nemesis_defeated", { name: ship.nemesisName }), "#ffcc00");
+            return;
+        }
+    }
+
     if (killerShip === State.playerShip) {
         if (ship.isFriendly && !State.playerShip.loneWolf) {
             increaseShipScore(killerShip, -SCORE_REWARDS.SHIP_KILLED);

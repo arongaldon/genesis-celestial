@@ -142,10 +142,19 @@ Los planetas en órbita suelen albergar **Estaciones**. Estas estructuras masiva
 
 La galaxia no está vacía. Las facciones hostiles despliegan **Escuadrones de Combate** que recorren las estrellas. Exhiben un comportamiento inteligente, flanqueando tu posición y coordinando ataques. Son capaces de **apuntar y destruir planetas** —incluyendo tu Mundo Natal o los que pertenecen a facciones rivales— convirtiéndolos en una gran amenaza para la estabilidad del sistema solar.
 
-## 🌠 Escenarios Cósmicos
+### Jefes "Némesis de Obsidiana"
 
-A lo largo de tu sesión, encontrarás varios eventos dinámicos:
+Cuando una nave enemiga sobrevive el tiempo suficiente para alcanzar el **Tier 8+**, o cuando la Vanguardia de Obsidiana intensifica su ofensiva, un señor de la guerra **Némesis de Obsidiana** con nombre propio (**Valerius**, **Kaelen**, **Nyx**, **Vex** o **Moros**) toma el mando:
 
+- **Amenaza de Ápice**: Reforzado con **4x de resistencia estructural (HP)**, recarga de armas acelerada y un escuadrón de escolta completo, el Némesis caza activamente al jugador o lidera asedios contra tu Planeta Natal.
+- **Recompensa de Alto Valor**: Rastreado con un aura carmesí y dorada, indicadores fuera de pantalla de largo alcance y una firma prominente en el radar. Derrotar a un Némesis otorga **+2.500 de Puntuación**, **+1 Vida Extra** y la **restauración completa del casco y los escudos**.
+
+## 🌠 Escenarios y Anomalías Cósmicas
+
+A lo largo de tu sesión, encontrarás eventos cósmicos dinámicos y peligros ambientales:
+
+- **Agujeros de Gusano Vinculados**: Pares de vórtices gravitacionales giratorios codificados por colores (`@` en el radar) conectan sectores distantes del mapa. Las naves, los asteroides e incluso las ráfagas láser atraídas hacia su horizonte de sucesos son catapultadas instantáneamente por su agujero de gusano vinculado conservando todo su impulso.
+- **Tormentas Solares y Sombras Planetarias**: Periódicamente, intensas **Tormentas Solares** estallan desde la estrella del sistema, barriendo el sector con viento solar mientras **duplican la velocidad de recarga de armas** de todas las naves. Los pilotos pueden refugiarse dentro de los conos de **Sombra Planetaria** de color cian proyectados detrás de los planetas cercanos para protegerse del empuje de la tormenta.
 - **La Defensa del Mundo Natal**: Comienzas el juego cerca de tu Planeta Natal. Proteger su integridad es vital; su pérdida supone un golpe significativo para la estabilidad del sistema.
 - **Reacciones en Cadena Masivas**: Un solo disparo mal colocado en un cúmulo de asteroides abarrotado puede desencadenar una cascada de colisiones que despeja —o crea— sectores enteros de espacio en segundos.
 - **Navegación Interestelar**: Utiliza el campo de estrellas multicapa y las nebulosas del espacio profundo para orientarte mientras exploras los límites del mundo.
@@ -157,24 +166,25 @@ A lo largo de tu sesión, encontrarás varios eventos dinámicos:
 
 ## 🏗️ Arquitectura Técnica
 
-*Celestial Genesis* se construye mediante un patrón de módulos orientado a funciones, aprovechando las importaciones modernas de ES6 para mantener una clara separación de responsabilidades. El motor está diseñado para renderizado 2D de alto rendimiento utilizando un enfoque de un solo paso de HTML5 Canvas.
+*Celestial Genesis* está construido mediante una arquitectura modular ES6 limpia, legible para humanos y sin redundancias, con configuración centralizada. El motor está diseñado para renderizado 2D de alto rendimiento utilizando un enfoque de un solo paso de HTML5 Canvas.
 
 ### Sistemas Principales
 
-- **Gestión de Estado (`core/state.js`)**: Un objeto centralizado de fuente única de verdad que rastrea todo, desde las posiciones planetarias hasta la cadencia de fuego del jugador.
-- **El Bucle del Juego (`core/game_engine.js`)**: Orquesta el ciclo de actualización y dibujo. Maneja el procesamiento de entrada, la gestión del ciclo de vida de las entidades y las condiciones de victoria/derrota.
-- **Motor de Física (`systems/physics.js`)**: Un sistema de física 2D personalizado que admite impulso, colisiones circulares y captura orbital gravitatoria. Utiliza una cuadrícula de hash espacial (patrones subyacentes/opcionales) para manejar cientos de asteroides a 60 FPS.
+- **Configuración Centralizada (`core/config.js`)**: Un centro de configuración único y fácil de ajustar que controla todas las constantes físicas, los tiers de las naves, las reglas planetarias, las anomalías cósmicas (`ANOMALY_CONFIG`) y los jefes (`NEMESIS_CONFIG`).
+- **Gestión de Estado (`core/state.js`)**: Un objeto centralizado de fuente única de verdad que rastrea todo, desde las posiciones planetarias y los agujeros de gusano activos hasta los temporizadores de tormentas solares y la cadencia de fuego del jugador.
+- **El Bucle del Juego (`core/game_engine.js`)**: Orquesta el ciclo de actualización y dibujo. Maneja el procesamiento de entrada, la gestión del ciclo de vida de las entidades, las anomalías cósmicas y las condiciones de victoria/derrota.
+- **Motor de Física y Anomalías (`systems/physics.js`)**: Un sistema de física 2D personalizado que admite impulso, colisiones circulares, captura orbital gravitatoria, teletransporte por agujeros de gusano y cálculo de sombras planetarias frente al viento solar. Utiliza una cuadrícula de hash espacial (Spatial Hash Grid) para manejar cientos de asteroides a 60 FPS.
 
 ### Desglose de Módulos
 
 | Directorio | Propósito | Archivos Clave |
 | :--- | :--- | :--- |
-| **`core/`** | Puntos de entrada y pegamento del motor. | `main.js`, `game_engine.js`, `state.js`, `config.js` |
-| **`entities/`** | Funciones de fábrica y lógica de ciclo de vida. | `entities.js` (Planetas/Asteroides), `ai.js` (Naves/Estaciones) |
-| **`systems/`** | Lógica pura para la resolución de interacciones. | `physics.js`, `combat.js`, `scoring.js` |
-| **`graphics/`** | Renderizado y efectos visuales. | `render.js`, `background.js`, `fx.js` (Partículas/Choques) |
-| **`audio/`** | Gestión de la API de Web Audio. | `audio.js` |
-| **`utils/`** | Ayudantes compartidos y localización. | `i18n.js` (Multilingüe), `utils.js` |
+| **`core/`** | Puntos de entrada, configuración, entrada y bucle del motor. | `main.js`, `game_engine.js`, `state.js`, `config.js`, `input.js`, `events.js` |
+| **`entities/`** | Funciones de fábrica, comportamiento de IA y ascenso de Némesis. | `entities.js` (Planetas/Asteroides/Agujeros de Gusano/Némesis), `ai.js` (Naves/Estaciones) |
+| **`systems/`** | Lógica pura para física, combate y progresión. | `physics.js`, `combat.js`, `scoring.js` |
+| **`graphics/`** | Renderizado, HUD, radar y efectos visuales. | `render.js`, `background.js`, `fx.js` (Partículas/Choques) |
+| **`audio/`** | Síntesis procedimental de sonido y música con Web Audio API. | `audio.js`, `music.js` |
+| **`utils/`** | Utilidades matemáticas/color y localización. | `i18n.js` (6 idiomas), `utils.js` |
 
 ## 🛠️ Flujo de Trabajo de Desarrollo
 
@@ -183,15 +193,15 @@ El proyecto sigue una filosofía de "Cero Dependencias" para el tiempo de ejecuc
 ### 🔌 Dependencias
 
 - **Tiempo de ejecución**: Ninguna. Vanilla JS puro y API de Canvas.
-- **Traducciones**: Gestionadas a través de `i18n.js`, soportando inglés, español, catalán, alemán y más.
-- **Activos**: Fondos procedimentales basados en CSS y señales de audio sintetizadas.
+- **Traducciones**: Gestionadas a través de `i18n.js`, soportando inglés, español, catalán, alemán, japonés y chino.
+- **Activos**: Fondos procedimentales basados en CSS y señales de audio sintetizadas (incluyendo efectos de salto espacial y alertas de Némesis).
 
 ### 🔄 Flujo de Datos
 
-1. **Entrada**: `events.js` captura las interrupciones brutas del hardware y actualiza `State.keys`.
-2. **Lógica**: `game_engine.js` llama a `updatePhysics()` y `updateAI()`.
-3. **Resolución**: `physics.js` calcula nuevas posiciones y resuelve colisiones.
-4. **Renderizado**: `render.js` limpia y dibuja el mundo basado en el `State` actual.
+1. **Entrada**: `events.js` e `input.js` capturan las interrupciones del hardware y el disparo de armas, actualizando `State`.
+2. **Lógica**: `game_engine.js` orquesta `updatePhysics()`, `updateAnomalies()` y `updateAllShipsAndStations()`.
+3. **Resolución**: `physics.js` y `combat.js` calculan nuevas posiciones, resuelven colisiones y aplican las fuerzas de agujeros de gusano y tormentas solares.
+4. **Renderizado**: `render.js` limpia y dibuja el mundo, las anomalías, las entidades, el radar y el HUD basándose en el `State` actual.
 
 ### 🚀 Optimización de Rendimiento
 

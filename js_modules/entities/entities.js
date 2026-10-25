@@ -1,5 +1,7 @@
-import { ASTEROID_CONFIG, PLANET_CONFIG, PLAYER_CONFIG, SHIP_CONFIG, STATION_CONFIG, FPS, WORLD_BOUNDS } from '../core/config.js';
+import { ANOMALY_CONFIG, ASTEROID_CONFIG, NEMESIS_CONFIG, PLANET_CONFIG, PLAYER_CONFIG, SHIP_CONFIG, STATION_CONFIG, FPS, WORLD_BOUNDS } from '../core/config.js';
 import { State } from '../core/state.js';
+import { AudioEngine } from '../audio/audio.js';
+import { addScreenMessage } from '../graphics/render.js';
 import { mulberry32, dist } from '../utils/utils.js';
 import { t } from '../utils/i18n.js';
 
@@ -310,4 +312,92 @@ export function generatePlanetName() {
     }
 
     return "DEEP SPACE";
+}
+
+export function createWormholes() {
+    State.wormholes = [];
+    const minDistFromCenter = PLANET_CONFIG.HOME_SPAWN_RANGE * 1.4;
+    const maxDistFromCenter = WORLD_BOUNDS * 0.72;
+    const pairHues = [280, 175];
+
+    const pickSafePortalCoords = (baseAngle) => {
+        for (let attempt = 0; attempt < 20; attempt++) {
+            const angle = baseAngle + (Math.random() - 0.5) * 0.5;
+            const distance = minDistFromCenter + Math.random() * (maxDistFromCenter - minDistFromCenter);
+            const x = Math.cos(angle) * distance;
+            const y = Math.sin(angle) * distance;
+
+            const tooCloseToPlanet = State.roids.some(
+                r => r.isPlanet && dist(x, y, r.x, r.y) < r.r + ANOMALY_CONFIG.WORMHOLE_PULL_RANGE * 1.5
+            );
+            const tooCloseToWormhole = State.wormholes.some(
+                w => dist(x, y, w.x, w.y) < ANOMALY_CONFIG.WORMHOLE_PULL_RANGE * 2
+            );
+
+            if (!tooCloseToPlanet && !tooCloseToWormhole) {
+                return { x, y };
+            }
+        }
+        return {
+            x: Math.cos(baseAngle) * ((minDistFromCenter + maxDistFromCenter) * 0.5),
+            y: Math.sin(baseAngle) * ((minDistFromCenter + maxDistFromCenter) * 0.5)
+        };
+    };
+
+    for (let p = 0; p < ANOMALY_CONFIG.WORMHOLE_PAIRS; p++) {
+        const angleA = (p * Math.PI / ANOMALY_CONFIG.WORMHOLE_PAIRS) + Math.random() * 0.6;
+        const angleB = angleA + Math.PI + (Math.random() - 0.5) * 0.4;
+        const posA = pickSafePortalCoords(angleA);
+        const posB = pickSafePortalCoords(angleB);
+        const hue = pairHues[p % pairHues.length];
+        const idA = p * 2 + 1;
+        const idB = p * 2 + 2;
+
+        const portalA = {
+            id: idA,
+            partnerId: idB,
+            pairIndex: p,
+            x: posA.x,
+            y: posA.y,
+            r: ANOMALY_CONFIG.WORMHOLE_RADIUS,
+            hue,
+            angle: 0
+        };
+        const portalB = {
+            id: idB,
+            partnerId: idA,
+            pairIndex: p,
+            x: posB.x,
+            y: posB.y,
+            r: ANOMALY_CONFIG.WORMHOLE_RADIUS,
+            hue,
+            angle: Math.PI
+        };
+        portalA.partner = portalB;
+        portalB.partner = portalA;
+        State.wormholes.push(portalA, portalB);
+    }
+}
+
+export function promoteToNemesis(ship) {
+    if (!ship || ship.isNemesis || ship.isFriendly) return;
+    const names = NEMESIS_CONFIG.NAMES;
+    const name = names[Math.floor(Math.random() * names.length)];
+
+    ship.isNemesis = true;
+    ship.nemesisName = name;
+    ship.score = Math.max(ship.score || 0, NEMESIS_CONFIG.MIN_TIER * SHIP_CONFIG.EVOLUTION_SCORE_STEP);
+    ship.tier = Math.max(ship.tier || 0, NEMESIS_CONFIG.MIN_TIER);
+    ship.maxStructureHP = SHIP_CONFIG.RESISTANCE * NEMESIS_CONFIG.HP_MULTIPLIER;
+    ship.structureHP = ship.maxStructureHP;
+    ship.r = SHIP_CONFIG.SIZE * 0.75;
+    ship.fleetHue = NEMESIS_CONFIG.HUE;
+    ship.role = 'leader';
+    if (!ship.squadSlots) {
+        ship.squadSlots = createSquadSlots();
+    }
+
+    State.activeNemesis = ship;
+    addScreenMessage(t("game.nemesis_arrived", { name }), "#ff0055");
+    AudioEngine.playNemesisAlert();
 }

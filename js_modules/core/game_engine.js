@@ -1,20 +1,21 @@
 import {
-    ASTEROID_CONFIG, BOUNDARY_CONFIG, PLANET_CONFIG, PLAYER_CONFIG,
-    SCORE_REWARDS, SHIP_CONFIG, STATION_CONFIG, FRICTION, G_CONST,
-    MAX_Z_DEPTH, MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE,
+    ANOMALY_CONFIG, ASTEROID_CONFIG, BOUNDARY_CONFIG, NEMESIS_CONFIG,
+    PLANET_CONFIG, PLAYER_CONFIG, SCORE_REWARDS, SHIP_CONFIG,
+    STATION_CONFIG, FRICTION, G_CONST, MAX_Z_DEPTH,
+    MIN_DURATION_TAP_TO_MOVE, SCALE_IN_MOUSE_MODE,
     SCALE_IN_TOUCH_MODE, WORLD_BOUNDS, ZOOM_LEVELS, DOM
 } from './config.js';
 import { State } from './state.js';
 import { dist } from '../utils/utils.js';
 import { AudioEngine } from '../audio/audio.js';
-import { newPlayerShip, createAsteroid, createAsteroidBelt, spawnStation, splitAsteroid } from '../entities/entities.js';
+import { newPlayerShip, createAsteroid, createAsteroidBelt, createWormholes, spawnStation, splitAsteroid } from '../entities/entities.js';
 import { initBackground } from '../graphics/background.js';
 import { createExplosion } from '../graphics/fx.js';
 import { increaseShipScore } from '../systems/scoring.js';
 import {
     drawRadar, drawLives, updateHUD, showInfoLEDText, addScreenMessage,
-    drawWorldBoundary, drawBackgroundAndFog, drawRoidOrPlanet,
-    drawEntity, drawPlayerShip, updateAndDrawParticles,
+    drawWorldBoundary, drawBackgroundAndFog, drawWormholes, drawSolarStorm,
+    drawRoidOrPlanet, drawEntity, drawPlayerShip, updateAndDrawParticles,
     drawOffScreenIndicators, drawScreenMessages
 } from '../graphics/render.js';
 import { shootLaser } from './input.js';
@@ -22,7 +23,7 @@ import { updateAndDrawShockwaves, updateAndDrawBullets } from '../systems/combat
 import { resetAIWarningTimers, tickAIWarningTimers, updateAllShipsAndStations } from '../entities/ai.js';
 import { t } from '../utils/i18n.js';
 import { isTouching, touchStartTime } from './events.js';
-import { updatePhysics } from '../systems/physics.js';
+import { updateAnomalies, updatePhysics } from '../systems/physics.js';
 
 /* * AI DISCLAIMER: This code was developed with the assistance of a large language model. 
  * The author (Aron Galdon Gines) retains all copyrights.
@@ -58,6 +59,7 @@ export function createLevel() {
         }
     });
 
+    createWormholes();
     updateHUD();
 }
 
@@ -175,6 +177,11 @@ function handleVictoryInteraction() {
 export function winGame() {
     if (State.victoryState) return;
     State.victoryState = true;
+
+    if (State.activeNemesis) {
+        State.activeNemesis.isNemesis = false;
+        State.activeNemesis = null;
+    }
 
     AudioEngine.playVictoryMusic();
 
@@ -582,12 +589,15 @@ export function loop() {
     updateAndDrawShockwaves(triggerHomePlanetLost);
     drawBackgroundAndFog();
     updatePhysics();
+    updateAnomalies();
 
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
+    drawWormholes();
     const shipsToDraw = updateAllShipsAndStations(hitPlayerShip);
     updateAndDrawAsteroidsAndPlanets();
+    drawSolarStorm();
     shipsToDraw.forEach(drawEntity);
     drawPlayerShip();
     updateAndDrawBullets(activePlanets, hitPlayerShip, triggerHomePlanetLost);
@@ -642,6 +652,15 @@ export function startGame() {
     State.enemyShipBullets = [];
     State.shockwaves = [];
     State.ships = [];
+    State.wormholes = [];
+    State.activeNemesis = null;
+    State.nemesisSpawnTimer = NEMESIS_CONFIG.FALLBACK_SPAWN_FRAMES;
+    State.solarStorm = {
+        timer: ANOMALY_CONFIG.SOLAR_STORM_INTERVAL_FRAMES,
+        warningTimer: 0,
+        activeTimer: 0,
+        playerSheltered: false
+    };
 
     State.playerShip = newPlayerShip();
     increaseShipScore(State.playerShip, 0);

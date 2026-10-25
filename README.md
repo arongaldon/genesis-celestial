@@ -142,10 +142,19 @@ Orbiting planets often house **Stations**. These massive structures act as defen
 
 The galaxy is not empty. Hostile factions deploy **Combat Squads** that roam the stars. They exhibit intelligent behavior, flanking your position and coordinating attacks. They are capable of **targeting and destroying planets**—including your Home World or those belonging to rival factions—making them a major threat to the solar system's stability.
 
-## 🌠 Cosmic Scenarios
+### The "Obsidian Nemesis" Bosses
 
-Throughout your session, you will encounter various dynamic events:
+When an enemy vessel survives long enough to reach **Tier 8+**, or when the Obsidian Vanguard escalates its offensive, a named **Obsidian Nemesis** warlord (**Valerius**, **Kaelen**, **Nyx**, **Vex**, or **Moros**) takes command:
 
+- **Apex Threat**: Reinforced with **4x Structure HP**, accelerated weapon reload, and a full escort squad, the Nemesis actively hunts the player or leads sieges against your Home Planet.
+- **High-Value Bounty**: Tracked with a golden-crimson aura, long-range off-screen indicators, and a prominent radar signature. Defeating a Nemesis grants **+2,500 Score**, **+1 Extra Life**, and **full hull and shield restoration**.
+
+## 🌠 Cosmic Scenarios & Anomalies
+
+Throughout your session, you will encounter dynamic cosmic events and environmental hazards:
+
+- **Linked Wormholes**: Pairs of swirling, color-coded gravitational vortices (`@` on the radar) connect distant sectors of the map. Ships, asteroids, and even laser volleys pulled into an event horizon are instantaneously slingshotted out of its linked partner with their momentum preserved.
+- **Solar Flare Storms & Planetary Shadows**: Periodically, intense **Solar Storms** erupt from the system's light source, sweeping solar wind across the sector while **doubling weapon reload speeds** for all ships. Pilots can take refuge inside the glowing cyan **Planetary Shadow** cones cast behind foreground planets to shield themselves from the storm's push.
 - **The Home World Defense**: You start the game near your Home Planet. Protecting its integrity is vital; its loss marks a significant blow to the system's stability.
 - **Massive Chain Reactions**: A single misplaced shot in a crowded asteroid cluster can trigger a cascade of collisions that clears—or creates—entire sectors of space in seconds.
 - **Interstellar Navigation**: Use the multi-layered starfield and deep-space nebulas for orientation as you explore the boundaries of the world.
@@ -157,24 +166,25 @@ Throughout your session, you will encounter various dynamic events:
 
 ## 🏗️ Technical Architecture
 
-*Celestial Genesis* is built using a functional-oriented module pattern, leveraging modern ES6 imports to maintain a clean separation of concerns. The engine is designed for high-performance 2D rendering using a single-pass HTML5 Canvas approach.
+*Celestial Genesis* is built using a clean, human-readable, functional ES6 module architecture with zero redundancies and centralized configuration. The engine is designed for high-performance 2D rendering using a single-pass HTML5 Canvas approach.
 
 ### Core Systems
 
-- **State Management (`core/state.js`)**: A centralized, single-source-of-truth object that tracks everything from planetary positions to the player's firing rate.
-- **The Game Loop (`core/game_engine.js`)**: Orchestrates the update-then-draw cycle. It handles input processing, entity lifecycle management, and win/loss conditions.
-- **Physics Engine (`systems/physics.js`)**: A custom-built 2D physics system supporting momentum, circular collisions, and gravitational orbital capture. It utilizes a Spatial Hash Grid (optional/underlying patterns) to handle hundreds of asteroids at 60 FPS.
+- **Centralized Configuration (`core/config.js`)**: A single, human-friendly configuration hub tuning all physics constants, ship tiers, planet rules, cosmic anomalies (`ANOMALY_CONFIG`), and boss encounters (`NEMESIS_CONFIG`).
+- **State Management (`core/state.js`)**: A centralized, single-source-of-truth object that tracks everything from planetary positions and active wormholes to solar storm timers and the player's firing rate.
+- **The Game Loop (`core/game_engine.js`)**: Orchestrates the update-then-draw cycle. It handles input processing, entity lifecycle management, cosmic anomalies, and win/loss conditions.
+- **Physics & Anomaly Engine (`systems/physics.js`)**: A custom-built 2D physics system supporting momentum, circular collisions, gravitational orbital capture, wormhole teleportation, and solar wind shadow raycasting. It utilizes a Spatial Hash Grid to handle hundreds of asteroids at 60 FPS.
 
 ### Module Breakdown
 
 | Directory | Purpose | Key Files |
 | :--- | :--- | :--- |
-| **`core/`** | Entry points and engine glue. | `main.js`, `game_engine.js`, `state.js`, `config.js` |
-| **`entities/`** | Factory functions and lifecycle logic. | `entities.js` (Planets/Asteroids), `ai.js` (Ships/Stations) |
-| **`systems/`** | Pure logic for interaction resolution. | `physics.js`, `combat.js`, `scoring.js` |
-| **`graphics/`** | Rendering and visual effects. | `render.js`, `background.js`, `fx.js` (Particles/Shocks) |
-| **`audio/`** | Web Audio API management. | `audio.js` |
-| **`utils/`** | Shared helpers and localization. | `i18n.js` (Multi-language), `utils.js` |
+| **`core/`** | Entry points, configuration, input, and engine loop. | `main.js`, `game_engine.js`, `state.js`, `config.js`, `input.js`, `events.js` |
+| **`entities/`** | Factory functions, AI behaviors, and boss promotion. | `entities.js` (Planets/Asteroids/Wormholes/Nemesis), `ai.js` (Ships/Stations) |
+| **`systems/`** | Pure logic for physics, combat, and progression. | `physics.js`, `combat.js`, `scoring.js` |
+| **`graphics/`** | Rendering, HUD, radar, and visual effects. | `render.js`, `background.js`, `fx.js` (Particles/Shocks) |
+| **`audio/`** | Procedural Web Audio API sound & music synthesis. | `audio.js`, `music.js` |
+| **`utils/`** | Shared math/color helpers and localization. | `i18n.js` (6 languages), `utils.js` |
 
 ## 🛠️ Development Workflow
 
@@ -183,15 +193,15 @@ The project follows a "Zero Dependency" philosophy for the runtime, requiring no
 ### 🔌 Dependencies
 
 - **Runtime**: None. Pure Vanilla JS and Canvas API.
-- **Translations**: Managed via `i18n.js`, supporting English, Spanish, Catalan, German, and more.
-- **Assets**: CSS-based procedural backgrounds and synthesized audio cues.
+- **Translations**: Managed via `i18n.js`, supporting English, Spanish, Catalan, German, Japanese, and Chinese.
+- **Assets**: CSS-based procedural backgrounds and synthesized Web Audio cues (including spatial warp and Nemesis alert sirens).
 
 ### 🔄 Data Flow
 
-1. **Input**: `events.js` captures raw hardware interrupts and updates `State.keys`.
-2. **Logic**: `game_engine.js` calls `updatePhysics()` and `updateAI()`.
-3. **Resolution**: `physics.js` calculates new positions and resolves collisions.
-4. **Rendering**: `render.js` clears and draws the world based on the current `State`.
+1. **Input**: `events.js` and `input.js` capture hardware interrupts and weapon triggers, updating `State`.
+2. **Logic**: `game_engine.js` orchestrates `updatePhysics()`, `updateAnomalies()`, and `updateAllShipsAndStations()`.
+3. **Resolution**: `physics.js` and `combat.js` calculate new positions, resolve collisions, and apply wormhole/solar storm forces.
+4. **Rendering**: `render.js` clears and draws the world, anomalies, entities, radar, and HUD based on the current `State`.
 
 ### 🚀 Performance Optimization
 

@@ -373,5 +373,65 @@ export const AudioEngine = {
         gain.connect(this.masterGain);
         osc.start();
         osc.stop(now + 0.1);
+    },
+
+    playWarp(worldX, worldY) {
+        if (!this.isVisible(worldX, worldY) || !this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'triangle';
+        osc1.frequency.setValueAtTime(220, now);
+        osc1.frequency.exponentialRampToValueAtTime(1320, now + 0.45);
+        osc2.frequency.setValueAtTime(330, now);
+        osc2.frequency.exponentialRampToValueAtTime(1980, now + 0.45);
+
+        gain.gain.setValueAtTime(0.01, now);
+        gain.gain.linearRampToValueAtTime(0.25, now + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.masterGain);
+        gain.connect(this.delay);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.5);
+        osc2.stop(now + 0.5);
+    },
+
+    playNemesisAlert() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const freqs = [110, 164.81, 220]; // A2 power chord
+        freqs.forEach(freq => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now);
+            osc.frequency.linearRampToValueAtTime(freq * 0.96, now + 1.2);
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(600, now);
+            filter.frequency.exponentialRampToValueAtTime(150, now + 1.2);
+
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.12, now + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            gain.connect(this.delay);
+
+            osc.start(now);
+            osc.stop(now + 1.25);
+        });
     }
 };

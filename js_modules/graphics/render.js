@@ -1,4 +1,4 @@
-import { ASTEROID_CONFIG, GLOBAL_LIGHT, MAX_Z_DEPTH, SHIP_CONFIG, STATION_CONFIG, WORLD_BOUNDS, DOM } from '../core/config.js';
+import { ANOMALY_CONFIG, ASTEROID_CONFIG, GLOBAL_LIGHT, MAX_Z_DEPTH, SHIP_CONFIG, STATION_CONFIG, WORLD_BOUNDS, DOM } from '../core/config.js';
 import { State } from '../core/state.js';
 import { createAmbientFog } from './background.js';
 import { getShipTier } from '../systems/scoring.js';
@@ -169,6 +169,137 @@ export function drawBackgroundAndFog() {
     drawStars(State.backgroundLayers.starsFar, '#555');
     drawStars(State.backgroundLayers.starsMid, '#888');
     drawStars(State.backgroundLayers.starsNear, '#fff');
+}
+
+export function drawWormholes() {
+    const ctx = DOM.canvasContext;
+    for (const w of State.wormholes) {
+        const vpX = w.x - State.worldOffsetX + State.width / 2;
+        const vpY = w.y - State.worldOffsetY + State.height / 2;
+        const pad = w.r * 2.5;
+        if (vpX < -pad || vpX > State.width + pad || vpY < -pad || vpY > State.height + pad) continue;
+
+        ctx.save();
+        ctx.translate(vpX, vpY);
+
+        // Outer gravitational pull ring
+        const pulse = 0.85 + Math.sin(Date.now() / 300) * 0.15;
+        const outerGrad = ctx.createRadialGradient(0, 0, w.r * 0.2, 0, 0, w.r * 1.8 * pulse);
+        outerGrad.addColorStop(0, `hsla(${w.hue}, 100%, 70%, 0.6)`);
+        outerGrad.addColorStop(0.5, `hsla(${w.hue}, 90%, 50%, 0.25)`);
+        outerGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = outerGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, w.r * 1.8 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Swirling spiral accretion arms
+        ctx.save();
+        ctx.rotate(w.angle);
+        ctx.strokeStyle = `hsla(${w.hue}, 100%, 75%, 0.75)`;
+        ctx.lineWidth = 3;
+        for (let arm = 0; arm < 4; arm++) {
+            ctx.beginPath();
+            const baseAngle = (arm * Math.PI) / 2;
+            for (let t = 0; t <= 1; t += 0.1) {
+                const rad = w.r * (0.25 + t * 0.9);
+                const ang = baseAngle + t * Math.PI * 1.2;
+                const px = Math.cos(ang) * rad;
+                const py = Math.sin(ang) * rad;
+                if (t === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // Event horizon dark core
+        ctx.fillStyle = '#020008';
+        ctx.strokeStyle = `hsl(${w.hue}, 100%, 80%)`;
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = `hsl(${w.hue}, 100%, 60%)`;
+        ctx.beginPath();
+        ctx.arc(0, 0, w.r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
+export function drawSolarStorm() {
+    const ctx = DOM.canvasContext;
+    const storm = State.solarStorm;
+    if (storm.warningTimer <= 0 && storm.activeTimer <= 0) return;
+
+    if (storm.activeTimer > 0) {
+        // Draw cool cyan planetary shadow safe-zone cones behind foreground planets
+        for (const r of State.roids) {
+            if (!r.isPlanet || r.z >= 0.5 || r._destroyed) continue;
+            const vpX = r.x - State.worldOffsetX + State.width / 2;
+            const vpY = r.y - State.worldOffsetY + State.height / 2;
+            const ldx = r.x - GLOBAL_LIGHT.X;
+            const ldy = r.y - GLOBAL_LIGHT.Y;
+            const shadowAngle = Math.atan2(ldy, ldx);
+            const shadowLength = r.r * 3.5;
+
+            ctx.save();
+            ctx.translate(vpX, vpY);
+            ctx.rotate(shadowAngle);
+
+            const shadowGrad = ctx.createLinearGradient(0, 0, shadowLength, 0);
+            shadowGrad.addColorStop(0, 'rgba(0, 255, 220, 0.22)');
+            shadowGrad.addColorStop(1, 'rgba(0, 255, 220, 0.0)');
+            ctx.fillStyle = shadowGrad;
+            ctx.beginPath();
+            ctx.rect(0, -r.r * 0.95, shadowLength, r.r * 1.9);
+            ctx.fill();
+
+            ctx.strokeStyle = 'rgba(0, 255, 220, 0.35)';
+            ctx.setLineDash([12, 12]);
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, -r.r * 0.95, shadowLength, r.r * 1.9);
+            ctx.restore();
+        }
+
+        // Draw animated solar flare wind streaks in screen space
+        ctx.save();
+        ctx.resetTransform();
+        const windDx = State.worldOffsetX - GLOBAL_LIGHT.X;
+        const windDy = State.worldOffsetY - GLOBAL_LIGHT.Y;
+        const windAngle = Math.atan2(windDy, windDx);
+
+        const flareAlpha = Math.min(0.22, (storm.activeTimer / ANOMALY_CONFIG.SOLAR_STORM_DURATION_FRAMES) * 0.25);
+        ctx.fillStyle = `rgba(255, 140, 0, ${flareAlpha * 0.5})`;
+        ctx.fillRect(0, 0, State.width, State.height);
+
+        ctx.strokeStyle = `rgba(255, 200, 80, ${flareAlpha * 1.8})`;
+        ctx.lineWidth = 2;
+        const now = Date.now();
+        const cosA = Math.cos(windAngle);
+        const sinA = Math.sin(windAngle);
+
+        for (let i = 0; i < 28; i++) {
+            const seedX = ((i * 197 + Math.floor(now * 0.8)) % (State.width + 400)) - 200;
+            const seedY = ((i * 353 + Math.floor(now * 0.5)) % (State.height + 400)) - 200;
+            const len = 80 + (i % 5) * 35;
+            ctx.beginPath();
+            ctx.moveTo(seedX, seedY);
+            ctx.lineTo(seedX + cosA * len, seedY + sinA * len);
+            ctx.stroke();
+        }
+        ctx.restore();
+    } else if (storm.warningTimer > 0) {
+        // Subtle pulsing amber border warning before storm hits
+        ctx.save();
+        ctx.resetTransform();
+        const pulse = (Math.sin(Date.now() / 120) + 1) * 0.5;
+        ctx.strokeStyle = `rgba(255, 150, 0, ${0.15 + pulse * 0.25})`;
+        ctx.lineWidth = 16;
+        ctx.strokeRect(0, 0, State.width, State.height);
+        ctx.restore();
+    }
 }
 
 export function drawRoidOrPlanet(r, depthScale, depthAlpha, vpX, vpY) {
@@ -445,9 +576,27 @@ export function drawEntity(shipToDraw) {
     ctx.restore();
     ctx.globalAlpha = 1;
 
+    if (shipToDraw.isNemesis) {
+        ctx.save();
+        const nemesisPulse = 0.7 + Math.sin(Date.now() / 150) * 0.3;
+        ctx.strokeStyle = `rgba(255, 204, 0, ${nemesisPulse})`;
+        ctx.shadowColor = '#ff0055';
+        ctx.shadowBlur = 20;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(vpX, vpY, (shipToDraw.r + 18) * depthScale, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffcc00';
+        ctx.font = `bold ${Math.max(12, Math.round(16 * depthScale))}px Courier New`;
+        ctx.textAlign = 'center';
+        ctx.fillText(`★ ${shipToDraw.nemesisName} ★`, vpX, vpY - (shipToDraw.r + 26) * depthScale);
+        ctx.restore();
+    }
+
     // Entity shield rendering
     const currentHP = shipToDraw.structureHP;
-    const maxHP = shipToDraw.type === 'station' ? STATION_CONFIG.RESISTANCE : SHIP_CONFIG.RESISTANCE;
+    const maxHP = shipToDraw.type === 'station' ? STATION_CONFIG.RESISTANCE : (shipToDraw.maxStructureHP || SHIP_CONFIG.RESISTANCE);
     let shieldOpacity = 0;
     let r = 0, g = 255, b = 255;
 
@@ -636,16 +785,18 @@ export function drawOffScreenIndicators() {
 
         const isOffScreen = vpX < 0 || vpX > State.width || vpY < 0 || vpY > State.height;
         const distToPlayer = dist(e.x, e.y, State.worldOffsetX, State.worldOffsetY);
+        const maxRange = e.isNemesis ? DETECTION_RANGE * 2.5 : DETECTION_RANGE;
 
-        if (isOffScreen && distToPlayer < DETECTION_RANGE) {
+        if (isOffScreen && distToPlayer < maxRange) {
             const indicatorX = Math.max(BORDER_PADDING, Math.min(State.width - BORDER_PADDING, vpX));
             const indicatorY = Math.max(BORDER_PADDING, Math.min(State.height - BORDER_PADDING, vpY));
 
             const pulseAlpha = 0.5 + Math.sin(Date.now() / 200) * 0.3;
-            ctx.globalAlpha = pulseAlpha;
-            ctx.fillStyle = '#FF0000';
-            ctx.shadowColor = '#FF0000';
-            ctx.shadowBlur = 10;
+            const size = e.isNemesis ? INDICATOR_SIZE * 1.6 : INDICATOR_SIZE;
+            ctx.globalAlpha = e.isNemesis ? 0.95 : pulseAlpha;
+            ctx.fillStyle = e.isNemesis ? '#ffcc00' : '#FF0000';
+            ctx.shadowColor = e.isNemesis ? '#ff0055' : '#FF0000';
+            ctx.shadowBlur = e.isNemesis ? 16 : 10;
 
             const angleToEnemy = Math.atan2(vpY - indicatorY, vpX - indicatorX);
             ctx.save();
@@ -653,9 +804,9 @@ export function drawOffScreenIndicators() {
             ctx.rotate(angleToEnemy);
 
             ctx.beginPath();
-            ctx.moveTo(INDICATOR_SIZE, 0);
-            ctx.lineTo(-INDICATOR_SIZE / 2, -INDICATOR_SIZE / 2);
-            ctx.lineTo(-INDICATOR_SIZE / 2, INDICATOR_SIZE / 2);
+            ctx.moveTo(size, 0);
+            ctx.lineTo(-size / 2, -size / 2);
+            ctx.lineTo(-size / 2, size / 2);
             ctx.closePath();
             ctx.fill();
 
@@ -751,6 +902,11 @@ export function drawRadar() {
                 DOM.canvasRadarContext.textAlign = 'center';
                 DOM.canvasRadarContext.textBaseline = 'middle';
                 DOM.canvasRadarContext.fillText('O', rx, ry);
+            } else if (type === 'wormhole') {
+                DOM.canvasRadarContext.font = "bold 11px Courier New";
+                DOM.canvasRadarContext.textAlign = 'center';
+                DOM.canvasRadarContext.textBaseline = 'middle';
+                DOM.canvasRadarContext.fillText('@', rx, ry);
             } else if (type === 'asteroid' || type === 'planet' || type === 'background_planet') {
                 DOM.canvasRadarContext.beginPath();
                 DOM.canvasRadarContext.arc(rx, ry, radarSize, 0, Math.PI * 2);
@@ -761,6 +917,11 @@ export function drawRadar() {
                 DOM.canvasRadarContext.fill();
             }
         };
+
+        for (let i = 0; i < State.wormholes.length; i++) {
+            const w = State.wormholes[i];
+            drawBlip(w.x, w.y, 'wormhole', `hsl(${w.hue}, 100%, 70%)`, w.r, 0);
+        }
 
         for (let i = 0; i < State.roids.length; i++) {
             const r = State.roids[i];
@@ -779,8 +940,9 @@ export function drawRadar() {
         for (let i = 0; i < State.ships.length; i++) {
             const e = State.ships[i];
             if (e.z <= 0.1) {
-                const color = e.isFriendly ? '#0088FF' : '#FF0000';
-                drawBlip(e.x, e.y, e.type === 'station' ? 'station' : 'ship', color, e.type === 'station' ? 0 : 2, e.z);
+                const color = e.isFriendly ? '#0088FF' : (e.isNemesis ? '#FFCC00' : '#FF0000');
+                const blipSize = e.type === 'station' ? 0 : (e.isNemesis ? 4 : 2);
+                drawBlip(e.x, e.y, e.type === 'station' ? 'station' : 'ship', color, blipSize, e.z);
             }
         }
 
